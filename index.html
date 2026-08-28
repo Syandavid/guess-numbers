@@ -3059,6 +3059,16 @@
         }
       }
 
+      function dropLocalAccounts(name, uid) {
+        const remaining = loadAccounts().filter(function (a) {
+          if (uid && a.localId && a.localId === uid) return false;
+          if (name && a.name === name) return false;
+          return true;
+        });
+        saveAccounts(remaining);
+        return remaining;
+      }
+
       async function logoutCurrentAccount() {
         if (dailyNameBusy || !globalName) return;
         const pin = normalizePin(accountPinInput.value);
@@ -3093,6 +3103,8 @@
         dailyNameBusy = true;
         showAccountError(false);
         const name = globalName;
+        const uidBefore = fbLocalId;
+        skipAccountPersist++;
         try {
           await ensureFbAuth();
           const uid = fbLocalId;
@@ -3131,26 +3143,22 @@
             await fbDeleteAllowMissing("usernames/" + encodeURIComponent(name));
             await fbDeleteAllowMissing("nameLocks/" + encodeURIComponent(name));
           }
-          const remaining = loadAccounts().filter(function (a) {
-            if (uid && a.localId === uid) return false;
-            if (name && a.name === name) return false;
-            return true;
-          });
-          saveAccounts(remaining);
-          dailyStats = { day: shanghaiDay(), correct: 0, wrong: 0 };
-          dailyRankCache = null;
-          writeDailyLocal();
+          dropLocalAccounts(name, uidBefore);
+          const remaining = dropLocalAccounts(name, uid);
           if (remaining.length) {
-            await switchToAccount(remaining[0], { skipPersist: true });
+            applyAccountLocal(remaining[0]);
           } else {
             clearCurrentIdentity();
-            renderAfterAccountChange();
           }
+          accountPinInput.value = "";
+          accountNameInput.value = "";
         } catch (_) {
           showAccountNameErr("连不上，请再试");
         } finally {
+          skipAccountPersist--;
           dailyNameBusy = false;
-          renderAccount();
+          persistActiveAccount();
+          renderAfterAccountChange();
         }
       }
 
