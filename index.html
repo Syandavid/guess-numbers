@@ -54,26 +54,51 @@
     #app {
       position: relative;
       width: 100%;
-      max-width: var(--stage-max);
+      max-width: none;
       height: var(--app-h);
       overflow: hidden;
       background: #000;
       container-type: inline-size;
       container-name: stage;
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
     }
 
-    @media (min-width: 640px) {
+    @media (orientation: landscape) and (max-height: 560px) {
+      .title {
+        font-size: clamp(32px, 14vh, 56px);
+      }
+      #home {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+      }
+      .stage {
+        padding: 0 16px 72px;
+      }
+      .home-actions {
+        flex-direction: row;
+        width: min(100%, 520px);
+      }
+      .start-btn, .ghost-btn { font-size: 20px; padding: 12px 20px; }
+    }
+
+    @media (hover: hover) and (pointer: fine) and (min-width: 960px) and (min-height: 700px) {
       html, body {
         background: #161616;
         align-items: center;
       }
       #app {
+        max-width: var(--stage-max);
         height: min(var(--app-h), calc(100dvh - 32px));
         max-height: calc(100dvh - 32px);
         border-radius: 24px;
         box-shadow:
           0 0 0 1px rgba(255, 255, 255, 0.08),
           0 24px 64px rgba(0, 0, 0, 0.5);
+        padding-left: 0;
+        padding-right: 0;
       }
     }
 
@@ -733,17 +758,33 @@
       function setAppHeight() {
         const vv = window.visualViewport;
         const h = vv ? vv.height : window.innerHeight;
+        const w = vv ? vv.width : window.innerWidth;
         document.documentElement.style.setProperty("--app-h", h + "px");
         if (vv) {
-          app.style.transform = "translateY(" + vv.offsetTop + "px)";
+          app.style.transform = "translate(" + vv.offsetLeft + "px," + vv.offsetTop + "px)";
+          app.style.width = w + "px";
+        } else {
+          app.style.width = "";
+          app.style.transform = "";
+        }
+      }
+
+      function relayoutGame() {
+        setAppHeight();
+        if (phase === "flash" || phase === "answer" || phase === "ready" || phase === "speak") {
+          requestAnimationFrame(applyNumberSize);
         }
       }
 
       setAppHeight();
-      window.addEventListener("resize", () => { setAppHeight(); if (phase === "flash" || phase === "answer") applyNumberSize(); });
-      window.addEventListener("orientationchange", setAppHeight);
+      window.addEventListener("resize", relayoutGame);
+      window.addEventListener("orientationchange", () => {
+        relayoutGame();
+        setTimeout(relayoutGame, 250);
+        setTimeout(relayoutGame, 600);
+      });
       if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", setAppHeight);
+        window.visualViewport.addEventListener("resize", relayoutGame);
         window.visualViewport.addEventListener("scroll", setAppHeight);
       }
 
