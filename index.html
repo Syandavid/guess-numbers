@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="猜数字">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="看一眼数字，然后说出来。">
+  <title>猜数字</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #000;
+      --text: #fff;
+      --orange: #FF7A00;
+      --muted: rgba(255, 255, 255, 0.55);
+      --app-h: 100dvh;
+      --stage-max: 480px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      width: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Helvetica Neue", sans-serif;
+      touch-action: manipulation;
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      max-width: var(--stage-max);
+      height: var(--app-h);
+      overflow: hidden;
+      background: #000;
+      container-type: inline-size;
+      container-name: stage;
+    }
+
+    @media (min-width: 640px) {
+      html, body {
+        background: #161616;
+        align-items: center;
+      }
+      #app {
+        height: min(var(--app-h), calc(100dvh - 32px));
+        max-height: calc(100dvh - 32px);
+        border-radius: 24px;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 24px 64px rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+    }
+    .screen.active { display: flex; }
+
+    #home {
+      padding: calc(env(safe-area-inset-top, 0px) + 24px) 32px calc(env(safe-area-inset-bottom, 0px) + 40px);
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .home-spacer { flex: 1; }
+
+    .title {
+      font-size: clamp(56px, 18vw, 92px);
+      font-size: clamp(56px, 18cqi, 92px);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    .home-hint {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    .home-actions {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .start-btn, .ghost-btn {
+      appearance: none;
+      border: none;
+      width: 100%;
+      padding: 18px 28px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      border-radius: 18px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .start-btn { background: #fff; color: #000; }
+    .ghost-btn {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+      font-size: 20px;
+      padding: 14px 28px;
+    }
+    .start-btn:active, .ghost-btn:active { transform: scale(0.98); opacity: 0.92; }
+
+    #game { cursor: pointer; }
+
+    .exit-btn {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 8px);
+      left: calc(env(safe-area-inset-left, 0px) + 12px);
+      z-index: 2;
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 14px;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .exit-btn:active { opacity: 0.7; }
+
+    .stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px 88px;
+      pointer-events: none;
+    }
+
+    .phase-text {
+      font-size: clamp(64px, 20vw, 104px);
+      font-size: clamp(64px, 20cqi, 104px);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1;
+      text-align: center;
+    }
+    .phase-text.ready { color: var(--orange); }
+    .phase-text.speak { color: #fff; }
+
+    .numbers {
+      display: block;
+      max-width: 100%;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-weight: 700;
+      font-size: clamp(64px, 20vw, 104px);
+      font-size: clamp(64px, 20cqi, 104px);
+      letter-spacing: 0.04em;
+      line-height: 1.08;
+      text-align: center;
+      white-space: normal;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+    .numbers.answer { color: #22C55E; }
+
+    .replay-btn {
+      position: absolute;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+      transform: translateX(-50%);
+      z-index: 2;
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      border-radius: 16px;
+      padding: 14px 36px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .replay-btn:active { opacity: 0.85; }
+
+    #settings {
+      padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+      gap: 28px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .settings-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 0 8px;
+    }
+
+    .setting {
+      padding: 0 8px;
+    }
+    .setting-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+      font-size: 16px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .setting-value {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--orange);
+      height: 28px;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: transparent;
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .chip.active {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #000;
+      font-weight: 600;
+    }
+
+    .hidden { display: none !important; }
+
+    .start-btn:focus-visible,
+    .ghost-btn:focus-visible,
+    .exit-btn:focus-visible,
+    .replay-btn:focus-visible,
+    .chip:focus-visible,
+    input[type="range"]:focus-visible {
+      outline: 2px solid var(--orange);
+      outline-offset: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <section id="home" class="screen active" aria-label="首页">
+      <div class="home-spacer"></div>
+      <h1 class="title">猜数字</h1>
+      <p class="home-hint" id="homeHint"></p>
+      <div class="home-spacer"></div>
+      <div class="home-actions">
+        <button type="button" class="start-btn" id="startBtn">开始</button>
+        <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
+      </div>
+    </section>
+
+    <section id="settings" class="screen" aria-label="难度设置">
+      <button type="button" class="exit-btn" id="settingsBack">返回</button>
+      <h2 class="settings-title">难度</h2>
+      <div class="setting">
+        <div class="setting-label">
+          <span>闪现时长</span>
+          <span class="setting-value" id="flashLabel">0.40 秒</span>
+        </div>
+        <input type="range" id="flashRange" min="50" max="1000" step="25" value="400">
+        <div class="chips" id="flashPresets" style="margin-top:12px">
+          <button type="button" class="chip" data-ms="50">极快</button>
+          <button type="button" class="chip" data-ms="100">很快</button>
+          <button type="button" class="chip" data-ms="200">快</button>
+          <button type="button" class="chip" data-ms="400">普通</button>
+          <button type="button" class="chip" data-ms="800">慢</button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="setting-label">
+          <span>数字位数</span>
+          <span class="setting-value" id="digitLabel">5 位</span>
+        </div>
+        <input type="range" id="digitRange" min="1" max="15" step="1" value="5">
+        <div class="chips" id="digitChips" style="margin-top:12px">
+          <button type="button" class="chip" data-digits="4">4</button>
+          <button type="button" class="chip" data-digits="5">5</button>
+          <button type="button" class="chip" data-digits="8">8</button>
+          <button type="button" class="chip" data-digits="10">10</button>
+          <button type="button" class="chip" data-digits="12">12</button>
+          <button type="button" class="chip" data-digits="15">15</button>
+          <button type="button" class="chip" data-digits="mix">随机</button>
+        </div>
+      </div>
+      <div class="setting" id="mixSetting">
+        <div class="setting-label">
+          <span>随机最少</span>
+          <span class="setting-value" id="mixMinLabel">4 位</span>
+        </div>
+        <input type="range" id="mixMinRange" min="1" max="15" step="1" value="4">
+        <div class="setting-label" style="margin-top:16px">
+          <span>随机最多</span>
+          <span class="setting-value" id="mixMaxLabel">10 位</span>
+        </div>
+        <input type="range" id="mixMaxRange" min="1" max="15" step="1" value="10">
+      </div>
+      <div class="setting">
+        <div class="setting-label">
+          <span>数字大小</span>
+          <span class="setting-value" id="sizeLabel">100%</span>
+        </div>
+        <input type="range" id="sizeRange" min="50" max="100" step="5" value="100">
+        <div class="chips" id="sizePresets" style="margin-top:12px">
+          <button type="button" class="chip" data-size="60">小</button>
+          <button type="button" class="chip" data-size="80">中</button>
+          <button type="button" class="chip" data-size="100">最大</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="game" class="screen" aria-label="游戏">
+      <button type="button" class="exit-btn" id="exitBtn">退出</button>
+      <div class="stage">
+        <div id="readyText" class="phase-text ready hidden">准备</div>
+        <div id="flashText" class="numbers hidden"></div>
+        <div id="speakText" class="phase-text speak hidden">请说</div>
+      </div>
+      <button type="button" class="replay-btn hidden" id="replayBtn">重玩</button>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const home = document.getElementById("home");
+      const game = document.getElementById("game");
+      const settings = document.getElementById("settings");
+      const startBtn = document.getElementById("startBtn");
+      const settingsBtn = document.getElementById("settingsBtn");
+      const settingsBack = document.getElementById("settingsBack");
+      const exitBtn = document.getElementById("exitBtn");
+      const readyText = document.getElementById("readyText");
+      const flashText = document.getElementById("flashText");
+      const speakText = document.getElementById("speakText");
+      const replayBtn = document.getElementById("replayBtn");
+      const app = document.getElementById("app");
+      const flashRange = document.getElementById("flashRange");
+      const digitRange = document.getElementById("digitRange");
+      const digitLabel = document.getElementById("digitLabel");
+      const mixSetting = document.getElementById("mixSetting");
+      const mixMinRange = document.getElementById("mixMinRange");
+      const mixMaxRange = document.getElementById("mixMaxRange");
+      const mixMinLabel = document.getElementById("mixMinLabel");
+      const mixMaxLabel = document.getElementById("mixMaxLabel");
+      const flashLabel = document.getElementById("flashLabel");
+      const homeHint = document.getElementById("homeHint");
+      const sizeRange = document.getElementById("sizeRange");
+      const sizeLabel = document.getElementById("sizeLabel");
+      const stageEl = document.querySelector("#game .stage");
+
+      const STORE = "guess-numbers-settings";
+      const PRESET_MS = [200, 300, 400, 600, 800];
+
+      let settingsState = loadSettings();
+      let phase = "home";
+      let readyTimer = null;
+      let flashTimer = null;
+      let lastNumber = "";
+
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem(STORE);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const flashMs = clampMs(parsed.flashMs);
+            const digits = normalizeDigits(parsed.digits);
+            const mix = normalizeMix(parsed.mixMin, parsed.mixMax);
+            return { flashMs: flashMs, digits: digits, mixMin: mix.min, mixMax: mix.max, sizePct: clampSize(parsed.sizePct) };
+          }
+        } catch (_) {}
+        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100 };
+      }
+
+      function clampMs(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return 400;
+        return Math.min(1000, Math.max(50, Math.round(n / 25) * 25));
+      }
+
+      function clampSize(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return 100;
+        return Math.min(100, Math.max(50, Math.round(n / 5) * 5));
+      }
+
+      function clampDigit(n, fallback) {
+        n = Number(n);
+        if (!Number.isInteger(n)) return fallback;
+        return Math.min(15, Math.max(1, n));
+      }
+
+      function normalizeDigits(d) {
+        if (d === "mix") return "mix";
+        return clampDigit(d, 5);
+      }
+
+      function normalizeMix(minV, maxV) {
+        let min = clampDigit(minV, 4);
+        let max = clampDigit(maxV, 10);
+        if (min > max) {
+          const t = min;
+          min = max;
+          max = t;
+        }
+        return { min: min, max: max };
+      }
+
+      function saveSettings() {
+        try {
+          localStorage.setItem(STORE, JSON.stringify(settingsState));
+        } catch (_) {}
+        renderSettings();
+      }
+
+      function digitsLabel() {
+        if (settingsState.digits === "mix") {
+          return "随机 " + settingsState.mixMin + "–" + settingsState.mixMax + " 位";
+        }
+        return settingsState.digits + " 位";
+      }
+
+      function renderSettings() {
+        flashRange.value = String(settingsState.flashMs);
+        flashLabel.textContent = (settingsState.flashMs / 1000).toFixed(2) + " 秒";
+        const isMix = settingsState.digits === "mix";
+        mixSetting.classList.toggle("hidden", !isMix);
+        digitRange.classList.toggle("hidden", isMix);
+        if (!isMix) digitRange.value = String(settingsState.digits);
+        mixMinRange.value = String(settingsState.mixMin);
+        mixMaxRange.value = String(settingsState.mixMax);
+        mixMinLabel.textContent = settingsState.mixMin + " 位";
+        mixMaxLabel.textContent = settingsState.mixMax + " 位";
+        digitLabel.textContent = digitsLabel();
+        sizeRange.value = String(settingsState.sizePct);
+        sizeLabel.textContent = settingsState.sizePct + "%";
+        homeHint.textContent = (settingsState.flashMs / 1000).toFixed(2) + " 秒 · " + digitsLabel() + " · " + settingsState.sizePct + "%";
+        document.querySelectorAll("#sizePresets .chip").forEach((btn) => {
+          btn.classList.toggle("active", Number(btn.dataset.size) === settingsState.sizePct);
+        });
+        document.querySelectorAll("#flashPresets .chip").forEach((btn) => {
+          btn.classList.toggle("active", Number(btn.dataset.ms) === settingsState.flashMs);
+        });
+        document.querySelectorAll("#digitChips .chip").forEach((btn) => {
+          const val = btn.dataset.digits === "mix" ? "mix" : Number(btn.dataset.digits);
+          btn.classList.toggle("active", val === settingsState.digits);
+        });
+      }
+
+      function showScreen(el) {
+        home.classList.remove("active");
+        game.classList.remove("active");
+        settings.classList.remove("active");
+        el.classList.add("active");
+      }
+
+      function setAppHeight() {
+        const vv = window.visualViewport;
+        const h = vv ? vv.height : window.innerHeight;
+        document.documentElement.style.setProperty("--app-h", h + "px");
+        if (vv) {
+          app.style.transform = "translateY(" + vv.offsetTop + "px)";
+        }
+      }
+
+      setAppHeight();
+      window.addEventListener("resize", () => { setAppHeight(); if (phase === "flash" || phase === "answer") applyNumberSize(); });
+      window.addEventListener("orientationchange", setAppHeight);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", setAppHeight);
+        window.visualViewport.addEventListener("scroll", setAppHeight);
+      }
+
+      document.addEventListener("gesturestart", (e) => e.preventDefault());
+      document.addEventListener("dblclick", (e) => e.preventDefault());
+      document.addEventListener(
+        "touchmove",
+        (e) => {
+          if (e.touches.length > 1) e.preventDefault();
+        },
+        { passive: false }
+      );
+
+      function clearTimers() {
+        if (readyTimer !== null) {
+          clearTimeout(readyTimer);
+          readyTimer = null;
+        }
+        if (flashTimer !== null) {
+          clearTimeout(flashTimer);
+          flashTimer = null;
+        }
+      }
+
+      function vibrate() {
+        try {
+          if (navigator.vibrate) navigator.vibrate(12);
+        } catch (_) {}
+      }
+
+      function showOnly(el) {
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+        el.classList.remove("hidden");
+      }
+
+      function randomNumber() {
+        let digits = settingsState.digits;
+        if (digits === "mix") {
+          const span = settingsState.mixMax - settingsState.mixMin + 1;
+          digits = settingsState.mixMin + Math.floor(Math.random() * span);
+        }
+        if (digits <= 1) return String(Math.floor(Math.random() * 10));
+        let s = String(1 + Math.floor(Math.random() * 9));
+        for (let i = 1; i < digits; i++) s += String(Math.floor(Math.random() * 10));
+        return s;
+      }
+
+      function setReplayVisible(on) {
+        replayBtn.classList.toggle("hidden", !on);
+      }
+
+      function applyNumberSize() {
+        const text = lastNumber || flashText.textContent || "0";
+        const n = Math.max(1, text.length);
+        const width = Math.max(80, (stageEl ? stageEl.clientWidth : window.innerWidth) - 16);
+        const height = Math.max(80, (stageEl ? stageEl.clientHeight : window.innerHeight) * 0.82);
+        const glyph = 0.58;
+        const ls = 0.03;
+        const lh = 1.06;
+        let lo = 24;
+        let hi = Math.min(width, height, 280);
+        let best = 24;
+        while (hi - lo > 0.5) {
+          const fs = (lo + hi) / 2;
+          const colW = fs * (glyph + ls);
+          const cols = Math.max(1, Math.floor(width / colW));
+          const rows = Math.ceil(n / cols);
+          if (rows * fs * lh <= height) {
+            best = fs;
+            lo = fs;
+          } else {
+            hi = fs;
+          }
+        }
+        best *= settingsState.sizePct / 100;
+        flashText.style.fontSize = best + "px";
+        flashText.style.letterSpacing = best * ls + "px";
+      }
+
+      function enterReady(keep) {
+        clearTimers();
+        setReplayVisible(false);
+        phase = "ready";
+        showOnly(readyText);
+        vibrate();
+        readyTimer = setTimeout(() => {
+          readyTimer = null;
+          enterFlash(keep);
+        }, 1500);
+      }
+
+      function enterFlash(keep) {
+        phase = "flash";
+        setReplayVisible(false);
+        if (!keep) lastNumber = randomNumber();
+        flashText.classList.remove("answer");
+        flashText.textContent = lastNumber;
+        showOnly(flashText);
+        applyNumberSize();
+        vibrate();
+        flashTimer = setTimeout(() => {
+          flashTimer = null;
+          enterSpeak();
+        }, settingsState.flashMs);
+      }
+
+      function enterSpeak() {
+        phase = "speak";
+        setReplayVisible(false);
+        showOnly(speakText);
+        vibrate();
+      }
+
+      function enterAnswer() {
+        phase = "answer";
+        flashText.classList.add("answer");
+        flashText.textContent = lastNumber;
+        showOnly(flashText);
+        applyNumberSize();
+        setReplayVisible(true);
+        vibrate();
+      }
+
+      function goHome() {
+        clearTimers();
+        setReplayVisible(false);
+        phase = "home";
+        showScreen(home);
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+      }
+
+      function startGame() {
+        showScreen(game);
+        enterReady(false);
+      }
+
+      startBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        startGame();
+      });
+
+      settingsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        phase = "settings";
+        showScreen(settings);
+      });
+
+      settingsBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
+      });
+
+      flashRange.addEventListener("input", () => {
+        settingsState.flashMs = clampMs(flashRange.value);
+        saveSettings();
+      });
+
+      document.getElementById("flashPresets").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-ms]");
+        if (!btn) return;
+        settingsState.flashMs = clampMs(btn.dataset.ms);
+        saveSettings();
+      });
+
+      sizeRange.addEventListener("input", () => {
+        settingsState.sizePct = clampSize(sizeRange.value);
+        saveSettings();
+      });
+
+      document.getElementById("sizePresets").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-size]");
+        if (!btn) return;
+        settingsState.sizePct = clampSize(btn.dataset.size);
+        saveSettings();
+      });
+
+      digitRange.addEventListener("input", () => {
+        settingsState.digits = normalizeDigits(digitRange.value);
+        saveSettings();
+      });
+
+      mixMinRange.addEventListener("input", () => {
+        settingsState.digits = "mix";
+        const mix = normalizeMix(mixMinRange.value, settingsState.mixMax);
+        settingsState.mixMin = mix.min;
+        settingsState.mixMax = mix.max;
+        saveSettings();
+      });
+
+      mixMaxRange.addEventListener("input", () => {
+        settingsState.digits = "mix";
+        const mix = normalizeMix(settingsState.mixMin, mixMaxRange.value);
+        settingsState.mixMin = mix.min;
+        settingsState.mixMax = mix.max;
+        saveSettings();
+      });
+
+      document.getElementById("digitChips").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-digits]");
+        if (!btn) return;
+        settingsState.digits = normalizeDigits(btn.dataset.digits);
+        if (settingsState.digits === "mix") {
+          const mix = normalizeMix(settingsState.mixMin, settingsState.mixMax);
+          settingsState.mixMin = mix.min;
+          settingsState.mixMax = mix.max;
+        }
+        saveSettings();
+      });
+
+      exitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
+      });
+      exitBtn.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+      });
+
+      replayBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (phase !== "answer") return;
+        enterReady(true);
+      });
+      replayBtn.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+      });
+      replayBtn.addEventListener("pointerup", (e) => {
+        e.stopPropagation();
+      });
+
+      game.addEventListener("pointerup", (e) => {
+        if (e.target === exitBtn || exitBtn.contains(e.target)) return;
+        if (e.target === replayBtn || replayBtn.contains(e.target)) return;
+        if (phase === "speak") {
+          enterAnswer();
+        } else if (phase === "answer") {
+          enterReady(false);
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          if (phase === "home") return;
+          e.preventDefault();
+          goHome();
+          return;
+        }
+        if (e.key !== " " && e.key !== "Enter") return;
+        if (e.repeat) return;
+        const tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        e.preventDefault();
+        if (phase === "home") {
+          startGame();
+        } else if (phase === "speak") {
+          enterAnswer();
+        } else if (phase === "answer") {
+          enterReady(false);
+        }
+      });
+
+      renderSettings();
+
+      if ("serviceWorker" in navigator) {
+        const isSecure =
+          location.protocol === "https:" ||
+          location.hostname === "localhost" ||
+          location.hostname === "127.0.0.1";
+        if (isSecure) {
+          window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js").catch(() => {});
+          });
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
