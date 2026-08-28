@@ -96,7 +96,14 @@ service cloud.firestore {
         && request.auth.uid == pid
         && isValidDailyPlayer(pid)
         && ownsName();
-      allow delete: if signedIn() && request.auth.uid == pid;
+      allow delete: if signedIn() && (
+        request.auth.uid == pid
+        || (
+          resource.data.name is string
+          && exists(/databases/$(database)/documents/usernames/$(resource.data.name))
+          && get(/databases/$(database)/documents/usernames/$(resource.data.name)).data.playerId == request.auth.uid
+        )
+      );
     }
 
     match /challenge/current {
@@ -106,10 +113,18 @@ service cloud.firestore {
         && (
           exists(/databases/$(database)/documents/challenge/beats/$(request.auth.uid))
           || (
-            resource.data.holderId == request.auth.uid
-            && request.resource.data.holderId == ''
+            request.resource.data.holderId == ''
             && request.resource.data.flashMs == resource.data.flashMs
             && request.resource.data.digits == resource.data.digits
+            && (
+              resource.data.holderId == request.auth.uid
+              || (
+                resource.data.holderName is string
+                && resource.data.holderName.size() >= 2
+                && exists(/databases/$(database)/documents/usernames/$(resource.data.holderName))
+                && get(/databases/$(database)/documents/usernames/$(resource.data.holderName)).data.playerId == request.auth.uid
+              )
+            )
           )
         );
       allow delete: if false;

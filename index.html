@@ -1218,8 +1218,8 @@
       <div id="accountList" class="records-list"></div>
       <p class="daily-sub" id="accountHint">点上面的名字即可切换。新增是注册新名字；取回是用口令把已有名字装回这台手机。</p>
       <div class="daily-name-box">
-        <input class="room-input" id="accountNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <input class="room-input" id="accountPinInput" type="text" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="accountNameInput" type="text" maxlength="8" placeholder="你的名字" name="account-name" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="accountPinInput" type="password" maxlength="8" placeholder="口令 4–8 位" name="account-pin" autocomplete="new-password" autocapitalize="off" spellcheck="false">
         <div class="account-actions">
           <button type="button" class="start-btn" id="accountAddBtn">新增</button>
           <button type="button" class="ghost-btn" id="accountReclaimBtn">取回</button>
@@ -3077,6 +3077,37 @@
         return remaining;
       }
 
+      async function authForLogout() {
+        try {
+          await ensureFbAuth({ allowSignup: false });
+          return;
+        } catch (_) {}
+        await signUpAnonymousFresh();
+      }
+
+      async function clearChallengeIfMine(name, uid) {
+        try {
+          const got = await fbGet("challenge/current");
+          const data = await got.json().catch(function () { return {}; });
+          if (!got.ok) return;
+          const cur = parseChallenge(parseDoc(data));
+          if (!cur) return;
+          if (cur.holderId !== uid && cur.holderName !== name) return;
+          const patch = await fbPatch("challenge/current", challengeFields({
+            flashMs: cur.flashMs,
+            digits: cur.digits,
+            holderId: "",
+            holderName: "系统",
+            heldSince: Date.now()
+          }), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
+          if (patch.ok && challengeState) {
+            challengeState.holderId = "";
+            challengeState.holderName = "系统";
+            challengeState.heldSince = Date.now();
+          }
+        } catch (_) {}
+      }
+
       async function logoutCurrentAccount() {
         if (dailyNameBusy || !globalName) return;
         const pin = normalizePin(accountPinInput.value);
@@ -3091,20 +3122,6 @@
           showAccountNameErr("注销失败：口令不对");
           return;
         }
-        if (!acc || !acc.pin) {
-          try {
-            await ensureFbAuth({ allowSignup: false });
-            const checked = await reclaimUsername(globalName, pin);
-            if (checked !== "ok") {
-              showAccountNameErr("注销失败：口令不对");
-              return;
-            }
-            persistActiveAccount(pin);
-          } catch (_) {
-            showAccountNameErr("注销失败：连不上");
-            return;
-          }
-        }
         showAccountNameErr("");
         const ok = await askConfirm("注销会删掉今日日榜成绩，取消挑战，并释放这个名字。确定？");
         if (!ok) return;
@@ -3116,38 +3133,37 @@
         let logoutOk = false;
         skipAccountPersist++;
         try {
-          await ensureFbAuth();
+          await authForLogout();
+          const owned = await reclaimUsername(name, pin);
+          if (owned === "badpin") {
+            logoutMsg = "注销失败：口令不对";
+            return;
+          }
+          if (owned === "nopin") {
+            logoutMsg = "注销失败：名字不存在";
+            return;
+          }
           const uid = fbLocalId;
+          let oldPid = uidBefore || uid;
+          try {
+            const userGot = await fbGet("usernames/" + encodeURIComponent(name));
+            const userData = await userGot.json().catch(function () { return {}; });
+            const doc = userGot.ok ? parseDoc(userData) : null;
+            if (doc && doc.playerId) oldPid = String(doc.playerId);
+          } catch (_) {}
+          const day = shanghaiDay();
+          if (oldPid) {
+            try { await fbDeleteAllowMissing("daily/" + encodeURIComponent(day) + "/players/" + encodeURIComponent(oldPid)); } catch (_) {}
+          }
+          if (uid && uid !== oldPid) {
+            try { await fbDeleteAllowMissing("daily/" + encodeURIComponent(day) + "/players/" + encodeURIComponent(uid)); } catch (_) {}
+          }
+          await clearChallengeIfMine(name, uid);
           if (uid) {
-            await fbDeleteAllowMissing("daily/" + encodeURIComponent(shanghaiDay()) + "/players/" + encodeURIComponent(uid));
-            try {
-              const got = await fbGet("challenge/current");
-              const data = await got.json().catch(function () { return {}; });
-              if (got.ok) {
-                const cur = parseChallenge(parseDoc(data));
-                if (cur && cur.holderId === uid) {
-                  const patch = await fbPatch("challenge/current", challengeFields({
-                    flashMs: cur.flashMs,
-                    digits: cur.digits,
-                    holderId: "",
-                    holderName: "系统",
-                    heldSince: Date.now()
-                  }), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
-                  if (!patch.ok) throw new Error("net");
-                  if (challengeState) {
-                    challengeState.holderId = "";
-                    challengeState.holderName = "系统";
-                    challengeState.heldSince = Date.now();
-                  }
-                }
-              } else if (!isNotFound(got, data)) {
-                throw new Error("net");
-              }
-            } catch (err) {
-              if (err && err.message === "net") throw err;
-              throw new Error("net");
-            }
-            await fbDeleteAllowMissing("challenge/beats/" + encodeURIComponent(uid));
+            try { await fbDeleteAllowMissing("challenge/beats/" + encodeURIComponent(uid)); } catch (_) {}
+          }
+          if (oldPid && oldPid !== uid) {
+            try { await fbDeleteAllowMissing("challenge/beats/" + encodeURIComponent(oldPid)); } catch (_) {}
           }
           if (name) {
             await fbDeleteAllowMissing("usernames/" + encodeURIComponent(name));
