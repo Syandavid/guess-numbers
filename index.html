@@ -2087,7 +2087,6 @@
           saveFbAuth();
           return fbIdToken;
         }
-        if (globalName) throw new Error("auth");
         const res = await fetch(FB_SIGNUP, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
