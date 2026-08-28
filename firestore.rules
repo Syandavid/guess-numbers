@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // usernames/{name}: { playerId, createdAt }
+    // nameLocks/{name}: { pin, playerId }  // never readable; write pin to prove ownership
     // daily/{yyyy-MM-dd}/players/{uid}: { playerId, name, correct, wrong, rankScore, t }
     // challenge/current: { flashMs, digits, holderId, holderName, heldSince }
     // challenge/beats/{uid}: { t, name }
@@ -20,6 +21,26 @@ service cloud.firestore {
         && request.resource.data.playerId.size() >= 8
         && request.resource.data.playerId.size() <= 128
         && request.resource.data.createdAt is int;
+    }
+
+    function isValidPin() {
+      return request.resource.data.pin is string
+        && request.resource.data.pin.size() >= 4
+        && request.resource.data.pin.size() <= 8
+        && request.resource.data.pin.matches('^[A-Za-z0-9]+$');
+    }
+
+    function isValidLock() {
+      return request.resource.data.keys().hasOnly(['pin', 'playerId'])
+        && isValidPin()
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.playerId is string
+        && request.resource.data.playerId.size() >= 8
+        && request.resource.data.playerId.size() <= 128;
+    }
+
+    function lockDoc(uname) {
+      return get(/databases/$(database)/documents/nameLocks/$(uname)).data;
     }
 
     function isValidDailyPlayer(pid) {
@@ -49,7 +70,24 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
       allow create: if signedIn() && isValidUsername();
-      allow update, delete: if false;
+      allow update: if signedIn()
+        && isValidUsername()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && exists(/databases/$(database)/documents/nameLocks/$(uname))
+        && lockDoc(uname).playerId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /nameLocks/{uname} {
+      allow get, list: if false;
+      allow create: if signedIn()
+        && isValidLock()
+        && exists(/databases/$(database)/documents/usernames/$(uname))
+        && get(/databases/$(database)/documents/usernames/$(uname)).data.playerId == request.auth.uid;
+      allow update: if signedIn()
+        && isValidLock()
+        && request.resource.data.pin == resource.data.pin;
+      allow delete: if false;
     }
 
     match /daily/{day}/players/{pid} {

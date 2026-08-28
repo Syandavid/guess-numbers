@@ -809,6 +809,7 @@
     .danger-btn:focus-visible,
     .room-input:focus-visible,
     #dailyNameInput:focus-visible,
+    #dailyPinInput:focus-visible,
     input[type="range"]:focus-visible {
       outline: 2px solid var(--orange);
       outline-offset: 3px;
@@ -1197,7 +1198,9 @@
       <p id="dailyError" class="room-error hidden">连不上</p>
       <div id="dailyNameBox" class="daily-name-box hidden">
         <input class="room-input" id="dailyNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="dailyPinInput" type="text" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="start-btn" id="dailyNameOk">确定</button>
+        <p class="daily-sub" id="dailyPinHint">口令用来取回这个名字，请自己记住</p>
         <p id="dailyNameErr" class="room-error hidden"></p>
       </div>
       <div id="dailyBoardBox" class="daily-board-box hidden">
@@ -1339,6 +1342,7 @@
       const dailyError = document.getElementById("dailyError");
       const dailyNameBox = document.getElementById("dailyNameBox");
       const dailyNameInput = document.getElementById("dailyNameInput");
+      const dailyPinInput = document.getElementById("dailyPinInput");
       const dailyNameOk = document.getElementById("dailyNameOk");
       const dailyPlay = document.getElementById("dailyPlay");
       const dailyNameErr = document.getElementById("dailyNameErr");
@@ -2025,6 +2029,12 @@
         return s;
       }
 
+      function normalizePin(raw) {
+        const s = String(raw || "").trim();
+        if (!/^[A-Za-z0-9]{4,8}$/.test(s)) return "";
+        return s;
+      }
+
       function rankScoreOf(correct, wrong) {
         return correct * 10000 - wrong;
       }
@@ -2172,6 +2182,31 @@
         const err = data && data.error ? JSON.stringify(data.error) : "";
         if (res.status === 409 || /ALREADY_EXISTS/i.test(err)) return "taken";
         if (!res.ok) throw new Error("net");
+        return "ok";
+      }
+
+      async function createNameLock(name, pin) {
+        const res = await fbCreate("nameLocks", name, {
+          pin: fsStr(pin),
+          playerId: fsStr(fbLocalId)
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (res.ok || isConflict(res, data)) return "ok";
+        throw new Error("net");
+      }
+
+      async function reclaimUsername(name, pin) {
+        const lockRes = await fbPatch("nameLocks/" + encodeURIComponent(name), {
+          pin: fsStr(pin),
+          playerId: fsStr(fbLocalId)
+        }, ["pin", "playerId"]);
+        const lockData = await lockRes.json().catch(function () { return {}; });
+        if (isNotFound(lockRes, lockData)) return "nopin";
+        if (!lockRes.ok) return "badpin";
+        const userRes = await fbPatch("usernames/" + encodeURIComponent(name), {
+          playerId: fsStr(fbLocalId)
+        }, ["playerId"]);
+        if (!userRes.ok) throw new Error("net");
         return "ok";
       }
 
@@ -2434,15 +2469,29 @@
           showDailyNameErr("请输入2–8个字，中文、字母或数字");
           return;
         }
+        const pin = normalizePin(dailyPinInput.value);
+        if (!pin) {
+          showDailyNameErr("请设4–8位口令，字母或数字");
+          return;
+        }
         dailyNameBusy = true;
         showDailyNameErr("");
         showDailyError(false);
         try {
           await ensureFbAuth();
-          const result = await claimUsername(name);
-          if (result === "taken") {
-            showDailyNameErr("这个名字已经有人用了");
-            return;
+          let result = await claimUsername(name);
+          if (result === "ok") {
+            await createNameLock(name, pin);
+          } else if (result === "taken") {
+            result = await reclaimUsername(name, pin);
+            if (result === "badpin") {
+              showDailyNameErr("口令不对");
+              return;
+            }
+            if (result === "nopin") {
+              showDailyNameErr("这个名字已经有人用了");
+              return;
+            }
           }
           saveGlobalName(name);
           renderDailyShell();
@@ -3715,6 +3764,12 @@
       });
 
       dailyNameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          dailyPinInput.focus();
+        }
+      });
+      dailyPinInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           submitDailyName();
