@@ -1,7 +1,8 @@
-const CACHE = "guess-numbers-v14";
+const CACHE = "guess-numbers-v15";
 const ASSETS = [
   "./",
   "./index.html",
+  "./mqtt.min.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",

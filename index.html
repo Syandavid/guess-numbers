@@ -96,7 +96,25 @@
         flex-direction: row;
         width: min(100%, 520px);
       }
+      .home-pair { width: auto; flex: 1; }
       .start-btn, .ghost-btn { font-size: 20px; padding: 12px 20px; }
+      #room {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+        gap: 8px;
+      }
+      .room-join, .room-lobby { width: min(100%, 520px); }
+      .room-code-big { font-size: clamp(28px, 12vh, 48px); padding: 0; }
+      .room-rank { padding: 6px 8px; font-size: 14px; }
+      .room-lobby-actions {
+        flex-direction: row;
+        margin-top: 4px;
+      }
+      .room-lobby-actions .start-btn,
+      .room-lobby-actions .ghost-btn { font-size: 18px; padding: 10px 16px; }
+      .room-join-row .ghost-btn { font-size: 16px; padding: 8px 16px; }
     }
 
     @media (hover: hover) and (pointer: fine) and (min-width: 960px) and (min-height: 700px) {
@@ -430,6 +448,145 @@
       font-weight: 600;
     }
 
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .home-pair {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+    .home-pair .ghost-btn { flex: 1; width: auto; }
+
+    #room {
+      padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+      gap: 16px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      align-items: center;
+    }
+    #room .settings-title {
+      width: min(100%, 320px);
+      padding: 0 8px;
+      align-self: center;
+    }
+
+    .room-join, .room-lobby {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .room-input {
+      appearance: none;
+      width: 100%;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.28);
+      color: #fff;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      font-family: inherit;
+      outline: none;
+    }
+    .room-input::placeholder { color: var(--muted); }
+
+    .room-join-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .room-join-row .room-input { flex: 1; min-width: 0; }
+    .room-join-row .ghost-btn {
+      width: auto;
+      flex: 0 0 auto;
+      padding: 14px 20px;
+      font-size: 18px;
+    }
+
+    .room-error {
+      color: #f87171;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      width: min(100%, 320px);
+    }
+    .room-hint {
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      width: min(100%, 320px);
+    }
+
+    .room-code-big {
+      font-size: clamp(48px, 16vw, 72px);
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      line-height: 1.1;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      padding: 8px 0 4px;
+    }
+
+    .room-board {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .room-rank {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 12px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .room-rank-n {
+      color: var(--muted);
+      width: 1.6em;
+      flex: none;
+    }
+    .room-rank-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .room-rank-score { font-weight: 700; flex: none; }
+
+    .room-count {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .room-lobby-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .session-scores.room-hud {
+      letter-spacing: 0.04em;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
     .hidden { display: none !important; }
 
     .exit-btn.right {
@@ -565,6 +722,7 @@
     .chip:focus-visible,
     .record-row:focus-visible,
     .danger-btn:focus-visible,
+    .room-input:focus-visible,
     input[type="range"]:focus-visible {
       outline: 2px solid var(--orange);
       outline-offset: 3px;
@@ -582,7 +740,10 @@
       <div class="home-actions">
         <button type="button" class="start-btn" id="startBtn">开始</button>
         <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
-        <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
+        <div class="home-pair">
+          <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
+          <button type="button" class="ghost-btn" id="roomBtn">房间</button>
+        </div>
       </div>
     </section>
 
@@ -718,6 +879,30 @@
       <button type="button" class="ghost-btn danger-ghost" id="deleteRecordBtn">删除本局</button>
     </section>
 
+    <section id="room" class="screen" aria-label="房间">
+      <button type="button" class="exit-btn" id="roomBack">返回</button>
+      <h2 class="settings-title" id="roomTitle">房间</h2>
+      <p id="roomError" class="room-error hidden">连不上房间，检查网络</p>
+      <p id="roomHint" class="room-hint hidden"></p>
+      <div id="roomJoin" class="room-join">
+        <input class="room-input" id="roomName" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button type="button" class="start-btn" id="roomCreate">创建房间</button>
+        <div class="room-join-row">
+          <input class="room-input" id="roomCodeInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="房间号" autocomplete="off">
+          <button type="button" class="ghost-btn" id="roomJoinBtn">加入</button>
+        </div>
+      </div>
+      <div id="roomLobby" class="room-lobby hidden">
+        <div class="room-code-big" id="roomCodeBig"></div>
+        <div id="roomBoard" class="room-board"></div>
+        <p id="roomCount" class="room-count hidden"></p>
+        <div class="room-lobby-actions">
+          <button type="button" class="start-btn" id="roomStart">开始</button>
+          <button type="button" class="ghost-btn danger-ghost" id="roomLeave">退出房间</button>
+        </div>
+      </div>
+    </section>
+
     <div id="confirmModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmText">
       <div class="confirm-card">
         <p id="confirmText"></p>
@@ -729,6 +914,7 @@
     </div>
   </div>
 
+  <script src="mqtt.min.js"></script>
   <script>
     (function () {
       const home = document.getElementById("home");
@@ -785,6 +971,23 @@
       const confirmText = document.getElementById("confirmText");
       const confirmCancel = document.getElementById("confirmCancel");
       const confirmOk = document.getElementById("confirmOk");
+      const room = document.getElementById("room");
+      const roomBtn = document.getElementById("roomBtn");
+      const roomBack = document.getElementById("roomBack");
+      const roomTitle = document.getElementById("roomTitle");
+      const roomError = document.getElementById("roomError");
+      const roomHint = document.getElementById("roomHint");
+      const roomJoin = document.getElementById("roomJoin");
+      const roomLobby = document.getElementById("roomLobby");
+      const roomName = document.getElementById("roomName");
+      const roomCreate = document.getElementById("roomCreate");
+      const roomCodeInput = document.getElementById("roomCodeInput");
+      const roomJoinBtn = document.getElementById("roomJoinBtn");
+      const roomCodeBig = document.getElementById("roomCodeBig");
+      const roomBoard = document.getElementById("roomBoard");
+      const roomCount = document.getElementById("roomCount");
+      const roomStart = document.getElementById("roomStart");
+      const roomLeave = document.getElementById("roomLeave");
 
       const STORE = "guess-numbers-settings";
       const SESSIONS_KEY = "guess-numbers-sessions";
@@ -803,6 +1006,482 @@
       let lastNumber = "";
       let sessionScores = [0, 0, 0, 0, 0, 0, 0];
       let groupSelected = [];
+
+      const NAME_KEY = "guess-numbers-name";
+      const PLAYER_ID_KEY = "guess-numbers-player-id";
+      const MQTT_URLS = [
+        "wss://broker.emqx.io:8084/mqtt",
+        "wss://broker.hivemq.com:8884/mqtt"
+      ];
+      const TOPIC_PREFIX = "syan1209-guess-numbers";
+      const STALE_MS = 6 * 60 * 60 * 1000;
+      const playerId = loadPlayerId();
+      let roomCode = "";
+      let roomDisplayName = "";
+      let roomCorrect = 0;
+      let roomWrong = 0;
+      let roomPlayers = new Map();
+      let roomTimer = null;
+      let roomBusy = false;
+      let mqttClient = null;
+      let mqttConnecting = false;
+      let mqttWanted = false;
+      let mqttGen = 0;
+      let mqttWaiters = [];
+
+      function loadPlayerId() {
+        try {
+          let id = localStorage.getItem(PLAYER_ID_KEY);
+          if (id && /^[A-Za-z0-9_-]{8,64}$/.test(id)) return id;
+          if (crypto.randomUUID) id = crypto.randomUUID();
+          else {
+            id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+          }
+          localStorage.setItem(PLAYER_ID_KEY, id);
+          return id;
+        } catch (_) {
+          return "p" + String(Date.now()) + Math.random().toString(36).slice(2, 10);
+        }
+      }
+
+      function loadName() {
+        try {
+          const n = localStorage.getItem(NAME_KEY);
+          return n ? String(n) : "";
+        } catch (_) {
+          return "";
+        }
+      }
+
+      function saveName(n) {
+        try {
+          localStorage.setItem(NAME_KEY, n);
+        } catch (_) {}
+      }
+
+      function normalizeName(raw) {
+        const s = String(raw || "").trim();
+        if (!/^[\u4e00-\u9fffA-Za-z]{2,8}$/.test(s)) return "";
+        return s;
+      }
+
+      function randomRoomCode() {
+        return String(1000 + Math.floor(Math.random() * 9000));
+      }
+
+      function playerTopic() {
+        return TOPIC_PREFIX + "/" + roomCode + "/p/" + playerId;
+      }
+
+      function roomSubTopic() {
+        return TOPIC_PREFIX + "/" + roomCode + "/p/+";
+      }
+
+      function mqttConnectFn() {
+        const m = typeof mqtt !== "undefined" ? mqtt : null;
+        if (!m) return null;
+        if (typeof m.connect === "function") return function (url, opts) { return m.connect(url, opts); };
+        if (m.default && typeof m.default.connect === "function") {
+          return function (url, opts) { return m.default.connect(url, opts); };
+        }
+        return null;
+      }
+
+      function showRoomError() {
+        roomError.classList.remove("hidden");
+      }
+
+      function hideRoomError() {
+        roomError.classList.add("hidden");
+      }
+
+      function showRoomHint(msg) {
+        roomHint.textContent = msg;
+        roomHint.classList.remove("hidden");
+      }
+
+      function hideRoomHint() {
+        roomHint.textContent = "";
+        roomHint.classList.add("hidden");
+      }
+
+      function flushMqttWaiters(err, client) {
+        const list = mqttWaiters;
+        mqttWaiters = [];
+        list.forEach((w) => {
+          if (err) w.reject(err);
+          else w.resolve(client);
+        });
+      }
+
+      function failMqtt() {
+        mqttConnecting = false;
+        showRoomError();
+        flushMqttWaiters(new Error("mqtt"));
+      }
+
+      function disconnectMqtt() {
+        mqttGen += 1;
+        mqttConnecting = false;
+        const c = mqttClient;
+        mqttClient = null;
+        if (c) {
+          try { c.end(true); } catch (_) {}
+        }
+      }
+
+      function beginMqttAttempts() {
+        const connect = mqttConnectFn();
+        if (!connect) {
+          failMqtt();
+          return;
+        }
+        mqttGen += 1;
+        const gen = mqttGen;
+        mqttConnecting = true;
+
+        function tryUrl(i) {
+          if (gen !== mqttGen) return;
+          if (i >= MQTT_URLS.length) {
+            failMqtt();
+            return;
+          }
+          let settled = false;
+          let client;
+          try {
+            client = connect(MQTT_URLS[i], {
+              protocolVersion: 4,
+              connectTimeout: 8000,
+              reconnectPeriod: 0,
+              keepalive: 30,
+              clean: true,
+              clientId: "gn" + String(playerId).replace(/[^A-Za-z0-9]/g, "").slice(0, 16) + Math.random().toString(16).slice(2, 6)
+            });
+          } catch (_) {
+            tryUrl(i + 1);
+            return;
+          }
+          const timer = setTimeout(() => {
+            if (settled || gen !== mqttGen) return;
+            settled = true;
+            try { client.end(true); } catch (_) {}
+            tryUrl(i + 1);
+          }, 8500);
+          client.on("connect", () => {
+            if (settled || gen !== mqttGen) {
+              try { client.end(true); } catch (_) {}
+              return;
+            }
+            settled = true;
+            clearTimeout(timer);
+            mqttConnecting = false;
+            mqttClient = client;
+            hideRoomError();
+            client.on("message", onMqttMessage);
+            if (roomCode) {
+              subscribeRoom();
+              publishPresence();
+            }
+            flushMqttWaiters(null, client);
+          });
+          client.on("error", () => {
+            if (settled || gen !== mqttGen) return;
+            settled = true;
+            clearTimeout(timer);
+            try { client.end(true); } catch (_) {}
+            tryUrl(i + 1);
+          });
+          client.on("close", () => {
+            if (gen !== mqttGen) return;
+            if (mqttClient === client) {
+              mqttClient = null;
+              if (mqttWanted) {
+                setTimeout(() => {
+                  if (mqttWanted && !mqttClient && !mqttConnecting) beginMqttAttempts();
+                }, 2500);
+              }
+              return;
+            }
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            tryUrl(i + 1);
+          });
+        }
+
+        tryUrl(0);
+      }
+
+      function ensureMqtt() {
+        return new Promise((resolve, reject) => {
+          if (!mqttConnectFn()) {
+            showRoomError();
+            reject(new Error("mqtt"));
+            return;
+          }
+          if (mqttClient && mqttClient.connected) {
+            hideRoomError();
+            resolve(mqttClient);
+            return;
+          }
+          mqttWaiters.push({ resolve: resolve, reject: reject });
+          mqttWanted = true;
+          if (!mqttConnecting) beginMqttAttempts();
+        });
+      }
+
+      function onMqttMessage(topic, buf) {
+        if (!roomCode) return;
+        const prefix = TOPIC_PREFIX + "/" + roomCode + "/p/";
+        if (String(topic).indexOf(prefix) !== 0) return;
+        const pid = String(topic).slice(prefix.length);
+        if (!pid || pid.indexOf("/") !== -1) return;
+        const raw = buf ? buf.toString() : "";
+        if (!raw) {
+          roomPlayers.delete(pid);
+          renderRoomBoard();
+          renderSessionScores();
+          return;
+        }
+        try {
+          const data = JSON.parse(raw);
+          const t = Number(data.t);
+          if (!Number.isFinite(t) || Date.now() - t > STALE_MS) return;
+          const name = String(data.name || "").slice(0, 8);
+          const correct = Math.max(0, Math.floor(Number(data.correct) || 0));
+          const wrong = Math.max(0, Math.floor(Number(data.wrong) || 0));
+          roomPlayers.set(pid, { name: name, correct: correct, wrong: wrong, t: t });
+        } catch (_) {}
+        renderRoomBoard();
+        renderSessionScores();
+      }
+
+      function subscribeRoom() {
+        if (!mqttClient || !mqttClient.connected || !roomCode) return;
+        try {
+          mqttClient.subscribe(roomSubTopic(), { qos: 0 });
+        } catch (_) {}
+      }
+
+      function publishPresence() {
+        if (!roomCode) return;
+        const payload = {
+          name: roomDisplayName,
+          correct: roomCorrect,
+          wrong: roomWrong,
+          t: Date.now()
+        };
+        roomPlayers.set(playerId, payload);
+        renderRoomBoard();
+        renderSessionScores();
+        if (!mqttClient || !mqttClient.connected) return;
+        try {
+          mqttClient.publish(playerTopic(), JSON.stringify(payload), { retain: true, qos: 0 });
+        } catch (_) {}
+      }
+
+      function pruneRoomPlayers() {
+        const now = Date.now();
+        roomPlayers.forEach((p, id) => {
+          if (!p || !Number.isFinite(p.t) || now - p.t > STALE_MS) roomPlayers.delete(id);
+        });
+      }
+
+      function rankedPlayers() {
+        pruneRoomPlayers();
+        const list = [];
+        roomPlayers.forEach((p, id) => {
+          list.push({
+            id: id,
+            name: p.name,
+            correct: p.correct || 0,
+            wrong: p.wrong || 0,
+            t: p.t
+          });
+        });
+        list.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong || b.t - a.t);
+        return list;
+      }
+
+      function myRoomRank() {
+        const list = rankedPlayers();
+        const idx = list.findIndex((p) => p.id === playerId);
+        if (idx < 0 || idx >= 7) return 0;
+        return idx + 1;
+      }
+
+      function roomHudText() {
+        const rank = myRoomRank();
+        const rankText = rank ? ("第" + rank) : "未上榜";
+        return "房间 " + roomCode + " · " + rankText;
+      }
+
+      function renderRoomBoard() {
+        const list = rankedPlayers();
+        roomBoard.innerHTML = "";
+        const top = list.slice(0, 7);
+        top.forEach((p, i) => {
+          const row = document.createElement("div");
+          row.className = "room-rank";
+          const nEl = document.createElement("span");
+          nEl.className = "room-rank-n";
+          nEl.textContent = String(i + 1);
+          const nameEl = document.createElement("span");
+          nameEl.className = "room-rank-name";
+          nameEl.textContent = p.name || "—";
+          const scoreEl = document.createElement("span");
+          scoreEl.className = "room-rank-score";
+          scoreEl.textContent = String(p.correct);
+          row.appendChild(nEl);
+          row.appendChild(nameEl);
+          row.appendChild(scoreEl);
+          roomBoard.appendChild(row);
+        });
+        if (list.length > 7) {
+          roomCount.textContent = "共 " + list.length + " 人";
+          roomCount.classList.remove("hidden");
+        } else {
+          roomCount.classList.add("hidden");
+        }
+      }
+
+      function renderRoom() {
+        const joined = !!roomCode;
+        roomJoin.classList.toggle("hidden", joined);
+        roomLobby.classList.toggle("hidden", !joined);
+        roomTitle.classList.toggle("hidden", joined);
+        if (!joined) {
+          if (!roomName.value) roomName.value = loadName();
+          return;
+        }
+        roomCodeBig.textContent = roomCode;
+        renderRoomBoard();
+      }
+
+      function startRoomTimer() {
+        if (roomTimer) return;
+        let beat = 0;
+        roomTimer = setInterval(() => {
+          if (!roomCode) return;
+          pruneRoomPlayers();
+          renderRoomBoard();
+          renderSessionScores();
+          beat += 2;
+          if (beat >= 46) {
+            beat = 0;
+            publishPresence();
+          }
+        }, 2000);
+      }
+
+      function stopRoomTimer() {
+        if (roomTimer) {
+          clearInterval(roomTimer);
+          roomTimer = null;
+        }
+      }
+
+      function joinAs(code, name) {
+        roomCode = code;
+        roomDisplayName = name;
+        roomCorrect = 0;
+        roomWrong = 0;
+        roomPlayers = new Map();
+        saveName(name);
+        hideRoomHint();
+        subscribeRoom();
+        publishPresence();
+        startRoomTimer();
+        renderRoom();
+      }
+
+      function clearRoomMembership() {
+        if (mqttClient && mqttClient.connected && roomCode) {
+          try {
+            mqttClient.publish(playerTopic(), "", { retain: true, qos: 0 });
+            mqttClient.unsubscribe(roomSubTopic());
+          } catch (_) {}
+        }
+        roomCode = "";
+        roomDisplayName = "";
+        roomCorrect = 0;
+        roomWrong = 0;
+        roomPlayers = new Map();
+        stopRoomTimer();
+        mqttWanted = false;
+        disconnectMqtt();
+      }
+
+      function goRoomLobby() {
+        clearTimers();
+        setAnswerControls(false);
+        hideBestBanner();
+        phase = "room";
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+        sessionScoresEl.classList.add("hidden");
+        sessionScoresEl.classList.remove("room-hud");
+        renderRoom();
+        showScreen(room);
+      }
+
+      function openRoom() {
+        phase = "room";
+        mqttWanted = true;
+        renderRoom();
+        showScreen(room);
+        ensureMqtt().then(() => {
+          hideRoomError();
+        }).catch(() => {
+          showRoomError();
+        });
+      }
+
+      async function createRoom() {
+        const name = normalizeName(roomName.value);
+        if (!name) {
+          showRoomHint("请输入2–8个字的名字");
+          return;
+        }
+        hideRoomHint();
+        if (roomBusy) return;
+        roomBusy = true;
+        try {
+          await ensureMqtt();
+          joinAs(randomRoomCode(), name);
+        } catch (_) {
+          showRoomError();
+        }
+        roomBusy = false;
+      }
+
+      async function joinFromForm() {
+        const name = normalizeName(roomName.value);
+        const code = String(roomCodeInput.value || "").trim();
+        if (!name) {
+          showRoomHint("请输入2–8个字的名字");
+          return;
+        }
+        if (!/^[1-9]\d{3}$/.test(code)) {
+          showRoomHint("请输入4位房间号");
+          return;
+        }
+        hideRoomHint();
+        if (roomBusy) return;
+        roomBusy = true;
+        try {
+          await ensureMqtt();
+          joinAs(code, name);
+        } catch (_) {
+          showRoomError();
+        }
+        roomBusy = false;
+      }
 
       function loadSettings() {
         try {
@@ -1081,7 +1760,7 @@
       }
 
       function beginSession() {
-        const n = settingsState.playerCount;
+        const n = roomCode ? 1 : settingsState.playerCount;
         currentSession = {
           id: newSessionId(),
           startAt: Date.now(),
@@ -1236,6 +1915,7 @@
         settings.classList.remove("active");
         records.classList.remove("active");
         recordDetail.classList.remove("active");
+        room.classList.remove("active");
         el.classList.add("active");
         if (el === home) {
           renderHomeHint();
@@ -1332,8 +2012,21 @@
       }
 
       function renderSessionScores() {
+        const inGame = phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer";
+        if (!inGame) {
+          sessionScoresEl.classList.add("hidden");
+          sessionScoresEl.classList.remove("room-hud");
+          return;
+        }
+        if (roomCode) {
+          sessionScoresEl.textContent = roomHudText();
+          sessionScoresEl.classList.add("room-hud");
+          sessionScoresEl.classList.remove("hidden");
+          return;
+        }
+        sessionScoresEl.classList.remove("room-hud");
         const n = settingsState.playerCount;
-        if (n < 2 || (phase !== "ready" && phase !== "flash" && phase !== "speak" && phase !== "answer")) {
+        if (n < 2) {
           sessionScoresEl.classList.add("hidden");
           return;
         }
@@ -1350,7 +2043,7 @@
           nextBtn.classList.add("hidden");
           return;
         }
-        const multi = settingsState.playerCount >= 2;
+        const multi = !roomCode && settingsState.playerCount >= 2;
         soloRow.classList.toggle("hidden", multi);
         groupRow.classList.toggle("hidden", !multi);
         nextBtn.classList.toggle("hidden", !multi);
@@ -1493,6 +2186,11 @@
         }
         const playerCount = currentSession ? currentSession.playerCount : settingsState.playerCount;
         if (ok && playerCount === 1) considerBest();
+        if (roomCode) {
+          if (ok) roomCorrect += 1;
+          else roomWrong += 1;
+          publishPresence();
+        }
         enterReady(false);
       }
 
@@ -1520,12 +2218,14 @@
         flashText.classList.add("hidden");
         speakText.classList.add("hidden");
         sessionScoresEl.classList.add("hidden");
+        sessionScoresEl.classList.remove("room-hud");
         renderHomeHint();
       }
 
       function leaveGame() {
         finalizeSession();
-        goHome();
+        if (roomCode) goRoomLobby();
+        else goHome();
       }
 
       function startGame() {
@@ -1550,6 +2250,69 @@
       recordsBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         openRecords();
+      });
+
+      roomBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openRoom();
+      });
+
+      roomBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!roomCode) {
+          mqttWanted = false;
+          disconnectMqtt();
+        }
+        goHome();
+      });
+
+      roomCreate.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        createRoom();
+      });
+
+      roomJoinBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        joinFromForm();
+      });
+
+      roomStart.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!roomCode) return;
+        startGame();
+      });
+
+      roomLeave.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearRoomMembership();
+        goHome();
+      });
+
+      roomName.addEventListener("input", () => {
+        saveName(roomName.value.trim());
+      });
+
+      roomName.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          createRoom();
+        }
+      });
+
+      roomCodeInput.addEventListener("input", () => {
+        roomCodeInput.value = roomCodeInput.value.replace(/\D/g, "").slice(0, 4);
+      });
+
+      roomCodeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          joinFromForm();
+        }
       });
 
       recordsBack.addEventListener("click", (e) => {
@@ -1751,7 +2514,7 @@
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
         if (phase === "answer") {
-          const multi = settingsState.playerCount >= 2;
+          const multi = !roomCode && settingsState.playerCount >= 2;
           if (multi && e.key >= "1" && e.key <= "7") {
             e.preventDefault();
             toggleGroup(Number(e.key) - 1);
