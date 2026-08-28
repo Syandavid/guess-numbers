@@ -567,6 +567,9 @@
       text-align: center;
       width: min(100%, 320px);
     }
+    .room-error.ok {
+      color: #4ade80;
+    }
     .room-hint {
       color: var(--muted);
       font-size: 14px;
@@ -2836,13 +2839,15 @@
         accountError.classList.toggle("hidden", !on);
       }
 
-      function showAccountNameErr(msg) {
+      function showAccountNameErr(msg, ok) {
         if (!msg) {
           accountNameErr.textContent = "";
           accountNameErr.classList.add("hidden");
+          accountNameErr.classList.remove("ok");
           return;
         }
         accountNameErr.textContent = msg;
+        accountNameErr.classList.toggle("ok", !!ok);
         accountNameErr.classList.remove("hidden");
       }
 
@@ -2953,12 +2958,12 @@
         if (dailyNameBusy) return;
         const form = readAccountForm();
         if (!form) return;
-        if (loadAccounts().some(function (a) { return a.name === form.name; })) {
-          showAccountNameErr("这个名字已经在本机，点上面切换");
+        if (loadAccounts().some(function (a) { return a.name === form.name; }) || globalName === form.name) {
+          showAccountNameErr("新增失败：名字已存在");
           return;
         }
         if (loadAccounts().length >= MAX_ACCOUNTS) {
-          showAccountNameErr("最多 8 个账号");
+          showAccountNameErr("新增失败：最多 8 个账号");
           return;
         }
         dailyNameBusy = true;
@@ -2971,14 +2976,15 @@
           const result = await claimUsername(form.name);
           if (result === "taken") {
             restoreAuthSnapshot(prev);
-            showAccountNameErr("这个名字已经有人用了，请点取回");
+            showAccountNameErr("新增失败：名字已存在");
             return;
           }
           await createNameLock(form.name, form.pin);
           finishLinkedAccount(form.name, form.pin);
+          showAccountNameErr("新增成功！", true);
         } catch (_) {
           restoreAuthSnapshot(prev);
-          showAccountNameErr("连不上，请再试");
+          showAccountNameErr("新增失败：连不上");
         } finally {
           dailyNameBusy = false;
         }
@@ -2990,7 +2996,7 @@
         const existing = loadAccounts().find(function (a) { return a.name === form.name; });
         if (existing) {
           if (existing.pin && existing.pin !== form.pin) {
-            showAccountNameErr("口令不对");
+            showAccountNameErr("取回失败：口令不对");
             return;
           }
           dailyNameBusy = true;
@@ -3002,13 +3008,14 @@
             accountNameInput.value = "";
             accountPinInput.value = "";
             renderAccount();
+            showAccountNameErr("取回成功！", true);
           } finally {
             dailyNameBusy = false;
           }
           return;
         }
         if (loadAccounts().length >= MAX_ACCOUNTS) {
-          showAccountNameErr("最多 8 个账号");
+          showAccountNameErr("取回失败：最多 8 个账号");
           return;
         }
         dailyNameBusy = true;
@@ -3021,18 +3028,19 @@
           const result = await reclaimUsername(form.name, form.pin);
           if (result === "badpin") {
             restoreAuthSnapshot(prev);
-            showAccountNameErr("口令不对");
+            showAccountNameErr("取回失败：口令不对");
             return;
           }
           if (result === "nopin") {
             restoreAuthSnapshot(prev);
-            showAccountNameErr("没有这个名字，请点新增");
+            showAccountNameErr("取回失败：名字不存在");
             return;
           }
           finishLinkedAccount(form.name, form.pin);
+          showAccountNameErr("取回成功！", true);
         } catch (_) {
           restoreAuthSnapshot(prev);
-          showAccountNameErr("连不上，请再试");
+          showAccountNameErr("取回失败：连不上");
         } finally {
           dailyNameBusy = false;
         }
@@ -3073,14 +3081,14 @@
         if (dailyNameBusy || !globalName) return;
         const pin = normalizePin(accountPinInput.value);
         if (!pin) {
-          showAccountNameErr("注销请先输入口令");
+          showAccountNameErr("注销失败：请先输入口令");
           return;
         }
         const acc = loadAccounts().find(function (a) {
           return (a.localId && a.localId === fbLocalId) || a.name === globalName;
         });
         if (acc && acc.pin && acc.pin !== pin) {
-          showAccountNameErr("口令不对");
+          showAccountNameErr("注销失败：口令不对");
           return;
         }
         if (!acc || !acc.pin) {
@@ -3088,12 +3096,12 @@
             await ensureFbAuth({ allowSignup: false });
             const checked = await reclaimUsername(globalName, pin);
             if (checked !== "ok") {
-              showAccountNameErr("口令不对");
+              showAccountNameErr("注销失败：口令不对");
               return;
             }
             persistActiveAccount(pin);
           } catch (_) {
-            showAccountNameErr("连不上，请再试");
+            showAccountNameErr("注销失败：连不上");
             return;
           }
         }
@@ -3104,6 +3112,8 @@
         showAccountError(false);
         const name = globalName;
         const uidBefore = fbLocalId;
+        let logoutMsg = "";
+        let logoutOk = false;
         skipAccountPersist++;
         try {
           await ensureFbAuth();
@@ -3152,13 +3162,16 @@
           }
           accountPinInput.value = "";
           accountNameInput.value = "";
+          logoutMsg = "注销成功！";
+          logoutOk = true;
         } catch (_) {
-          showAccountNameErr("连不上，请再试");
+          logoutMsg = "注销失败：连不上";
         } finally {
           skipAccountPersist--;
           dailyNameBusy = false;
           persistActiveAccount();
           renderAfterAccountChange();
+          if (logoutMsg) showAccountNameErr(logoutMsg, logoutOk);
         }
       }
 
