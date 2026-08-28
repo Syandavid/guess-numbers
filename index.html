@@ -66,14 +66,21 @@
 
     @media (orientation: landscape) and (max-height: 560px) {
       .title {
-        font-size: clamp(32px, 14vh, 56px);
+        font-size: clamp(26px, 11vh, 40px);
       }
       #home {
-        padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-        padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
-        padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+        padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
+        justify-content: center;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
       }
+      .home-spacer { display: none; flex: none; }
+      .home-hint { margin-top: 2px; font-size: 13px; }
+      .home-best { margin-top: 0; font-size: 12px; }
       .stage {
         padding: 0 20px 12px;
         min-height: 0;
@@ -92,8 +99,13 @@
       .group-chip { width: 40px; height: 40px; font-size: 16px; }
       .replay-btn { font-size: 16px; padding: 8px 18px; }
       .phase-text { font-size: clamp(40px, 16vh, 72px); }
-      .home-actions { width: min(100%, 400px); }
-      .start-btn, .ghost-btn { font-size: 20px; padding: 12px 20px; }
+      .home-actions {
+        width: min(100%, 560px);
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .home-actions > #challengeBtn { grid-column: auto; }
+      .start-btn, .ghost-btn { font-size: 16px; padding: 8px 12px; }
       #room {
         padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -126,11 +138,13 @@
 
       #homeBlock { grid-column: 1 / -1; }
       #challenge {
-        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+        padding-top: calc(env(safe-area-inset-top, 0px) + 28px);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
         padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
         padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
         gap: 8px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       #challenge .settings-title, .challenge-box, .challenge-line { width: min(100%, 520px); }
       .type-row { max-width: none; width: min(100%, 360px); }
