@@ -1,9 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Assumed data model
-    // usernames/{name}: { playerId: string, createdAt: int }
+    // usernames/{name}: { playerId, createdAt }
     // daily/{yyyy-MM-dd}/players/{uid}: { playerId, name, correct, wrong, rankScore, t }
+    // challenge/current: { flashMs, digits, holderId, holderName, heldSince }
+    // challenge/beats/{uid}: { t, name }
+    // rooms/{code}: { ownerId, ownerName, adminIds, antiCheat, answerSeconds, phase, roundId, number, flashMs, digits, flashAt, inputUntil, replay }
+    // rooms/{code}/members/{uid}: { name, joinedAt }
+    // rooms/{code}/answers/{uid}: { roundId, answer, ok, t }
 
     function signedIn() {
       return request.auth != null;
@@ -55,6 +59,73 @@ service cloud.firestore {
         && isValidDailyPlayer(pid)
         && ownsName();
       allow delete: if false;
+    }
+
+    match /challenge/current {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn()
+        && exists(/databases/$(database)/documents/challenge/beats/$(request.auth.uid));
+      allow delete: if false;
+    }
+
+    match /challenge/beats/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    function roomDoc(code) {
+      return get(/databases/$(database)/documents/rooms/$(code)).data;
+    }
+
+    function isOwner(code) {
+      return signedIn() && roomDoc(code).ownerId == request.auth.uid;
+    }
+
+    function isAdmin(code) {
+      return signedIn() && (
+        roomDoc(code).ownerId == request.auth.uid
+        || request.auth.uid in roomDoc(code).adminIds
+      );
+    }
+
+    function isMember(code) {
+      return signedIn() && exists(/databases/$(database)/documents/rooms/$(code)/members/$(request.auth.uid));
+    }
+
+    match /rooms/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && code.matches('^[1-9][0-9]{3}$');
+      allow update: if signedIn() && (
+        resource.data.ownerId == request.auth.uid
+        || request.auth.uid in resource.data.adminIds
+        || (
+          isMember(code)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phase'])
+        )
+      );
+      allow delete: if isOwner(code);
+    }
+
+    match /rooms/{code}/members/{uid} {
+      allow read: if signedIn() && isMember(code);
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update, delete: if signedIn() && (request.auth.uid == uid || isAdmin(code));
+    }
+
+    match /rooms/{code}/answers/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid && isMember(code);
+      allow update: if signedIn() && request.auth.uid == uid && isMember(code);
+      allow read: if signedIn() && isMember(code) && (
+        uid == request.auth.uid
+        || roomDoc(code).phase == 'reveal'
+        || exists(/databases/$(database)/documents/rooms/$(code)/answers/$(request.auth.uid))
+      );
+      allow delete: if isAdmin(code);
     }
   }
 }

@@ -127,6 +127,21 @@
       .daily-you { font-size: 14px; margin: 0; }
       #daily .room-rank { padding: 6px 8px; font-size: 14px; }
       .daily-name-box, .daily-board-box, #daily .room-board, #daily .settings-title { width: min(100%, 520px); }
+
+      .home-actions { flex-wrap: wrap; }
+      #challengeBtn { flex: 1 1 100%; }
+      #homeBlock { flex: 1 1 100%; }
+      #challenge {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+        gap: 8px;
+      }
+      #challenge .settings-title, .challenge-box, .challenge-line { width: min(100%, 520px); }
+      .type-row { max-width: none; width: min(100%, 360px); }
+      .type-input { font-size: 20px; padding: 8px 12px; }
+      .type-submit { font-size: 16px; padding: 8px 14px; }
     }
 
     @media (hover: hover) and (pointer: fine) and (min-width: 960px) and (min-height: 700px) {
@@ -798,6 +813,151 @@
       outline: 2px solid var(--orange);
       outline-offset: 3px;
     }
+
+    .start-btn:disabled {
+      opacity: 0.35;
+      pointer-events: none;
+      transform: none;
+    }
+
+    .home-block {
+      color: #f87171;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    .type-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+      align-items: stretch;
+    }
+    .type-input {
+      flex: 1;
+      min-width: 0;
+      appearance: none;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.28);
+      color: #fff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      outline: none;
+    }
+    .type-input:disabled { opacity: 0.4; }
+    .type-submit {
+      flex: 0 0 auto;
+      width: auto;
+      max-width: none;
+      padding: 16px 20px;
+      font-size: 20px;
+    }
+    .type-timer {
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+
+    .room-reveal {
+      width: 100%;
+      max-width: 320px;
+      max-height: 28vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .room-admin {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .room-mini {
+      appearance: none;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.22);
+      color: #fff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      flex: none;
+    }
+    .room-mini:active { opacity: 0.75; }
+
+    .room-rank-actions {
+      display: flex;
+      gap: 6px;
+      flex: none;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip.dim { opacity: 0.35; }
+
+    #challenge {
+      padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+      gap: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      align-items: center;
+    }
+    #challenge .settings-title {
+      width: min(100%, 320px);
+      padding: 0 8px;
+      align-self: center;
+    }
+    .challenge-line {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-align: center;
+      width: min(100%, 320px);
+      font-variant-numeric: tabular-nums;
+    }
+    .challenge-muted {
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .challenge-box {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .toggle-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      color: var(--muted);
+      font-size: 16px;
+      letter-spacing: 0.06em;
+    }
+
+    #typeInput:focus-visible,
+    #challengeFlashRange:focus-visible,
+    #challengeDigitRange:focus-visible {
+      outline: 2px solid var(--orange);
+      outline-offset: 3px;
+    }
   </style>
 </head>
 <body>
@@ -811,20 +971,33 @@
       <div class="home-spacer"></div>
       <div class="home-actions">
         <button type="button" class="start-btn" id="startBtn">开始</button>
+        <p class="home-block hidden" id="homeBlock"></p>
         <div class="home-pair">
-          <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
+          <button type="button" class="ghost-btn" id="settingsBtn">难度</button>
           <button type="button" class="ghost-btn" id="dailyBtn">日榜</button>
         </div>
         <div class="home-pair">
           <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
           <button type="button" class="ghost-btn" id="roomBtn">房间</button>
         </div>
+        <button type="button" class="ghost-btn" id="challengeBtn">挑战</button>
       </div>
     </section>
 
     <section id="settings" class="screen" aria-label="难度设置">
       <button type="button" class="exit-btn" id="settingsBack">返回</button>
       <h2 class="settings-title">难度</h2>
+      <div class="setting">
+        <div class="setting-label">
+          <span>参加日榜</span>
+          <span class="setting-value" id="joinDailyLabel">关</span>
+        </div>
+        <div class="chips" id="joinDailyChips">
+          <button type="button" class="chip" id="joinDailyOff" data-join="0">关</button>
+          <button type="button" class="chip" id="joinDailyOn" data-join="1">开</button>
+        </div>
+        <p class="room-hint" id="joinDailyHint"></p>
+      </div>
       <div class="setting">
         <div class="setting-label">
           <span>闪现时长</span>
@@ -834,6 +1007,7 @@
         <div class="chips" id="flashPresets" style="margin-top:12px">
           <button type="button" class="chip" data-ms="50">极快</button>
           <button type="button" class="chip" data-ms="100">很快</button>
+          <button type="button" class="chip" data-ms="150">0.15秒</button>
           <button type="button" class="chip" data-ms="200">快</button>
           <button type="button" class="chip" data-ms="400">普通</button>
           <button type="button" class="chip" data-ms="800">慢</button>
@@ -848,6 +1022,7 @@
         <div class="chips" id="digitChips" style="margin-top:12px">
           <button type="button" class="chip" data-digits="4">4</button>
           <button type="button" class="chip" data-digits="5">5</button>
+          <button type="button" class="chip" data-digits="6">6</button>
           <button type="button" class="chip" data-digits="8">8</button>
           <button type="button" class="chip" data-digits="10">10</button>
           <button type="button" class="chip" data-digits="12">12</button>
@@ -906,11 +1081,18 @@
         <div id="speakText" class="phase-text speak hidden">请说</div>
       </div>
       <div id="answerBar" class="answer-bar hidden">
+        <p id="typeTimer" class="type-timer hidden"></p>
+        <div id="typeRow" class="type-row hidden">
+          <input class="type-input" id="typeInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+          <button type="button" class="judge-btn type-submit" id="typeSubmit">提交</button>
+        </div>
         <div id="soloRow" class="judge-row hidden">
           <button type="button" class="judge-btn" id="yesBtn">对</button>
           <button type="button" class="judge-btn" id="noBtn">错</button>
         </div>
         <div id="groupRow" class="group-row hidden"></div>
+        <div id="roomReveal" class="room-reveal hidden"></div>
+        <p id="waitText" class="type-timer hidden">已提交</p>
         <div class="action-row">
           <button type="button" class="replay-btn" id="replayBtn">重玩</button>
           <button type="button" class="replay-btn" id="nextBtn">下一轮</button>
@@ -957,7 +1139,7 @@
     <section id="room" class="screen" aria-label="房间">
       <button type="button" class="exit-btn" id="roomBack">返回</button>
       <h2 class="settings-title" id="roomTitle">房间</h2>
-      <p id="roomError" class="room-error hidden">连不上房间，检查网络</p>
+      <p id="roomError" class="room-error hidden">连不上</p>
       <p id="roomHint" class="room-hint hidden"></p>
       <div id="roomJoin" class="room-join">
         <input class="room-input" id="roomName" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -971,8 +1153,36 @@
         <div class="room-code-big" id="roomCodeBig"></div>
         <div id="roomBoard" class="room-board"></div>
         <p id="roomCount" class="room-count hidden"></p>
+        <p id="roomDiffLine" class="room-count hidden"></p>
+        <div id="roomAdmin" class="room-admin hidden">
+          <div class="setting">
+            <div class="setting-label">
+              <span>闪现时长</span>
+              <span class="setting-value" id="roomFlashLabel">0.40 秒</span>
+            </div>
+            <input type="range" id="roomFlashRange" min="50" max="1000" step="25" value="400">
+          </div>
+          <div class="setting">
+            <div class="setting-label">
+              <span>数字位数</span>
+              <span class="setting-value" id="roomDigitLabel">5 位</span>
+            </div>
+            <input type="range" id="roomDigitRange" min="1" max="15" step="1" value="5">
+          </div>
+          <div class="chips">
+            <button type="button" class="chip" id="roomAntiCheatBtn">防作弊</button>
+          </div>
+          <div id="roomAnswerSecWrap" class="hidden">
+            <div class="setting-label">
+              <span>作答时限</span>
+              <span class="setting-value" id="roomAnswerSecLabel">3 秒</span>
+            </div>
+            <input type="range" id="roomAnswerSecRange" min="1" max="15" step="1" value="3">
+          </div>
+        </div>
         <div class="room-lobby-actions">
           <button type="button" class="start-btn" id="roomStart">开始</button>
+          <button type="button" class="ghost-btn hidden" id="roomResume">回到游戏</button>
           <button type="button" class="ghost-btn danger-ghost" id="roomLeave">退出房间</button>
         </div>
       </div>
@@ -983,16 +1193,55 @@
       <h2 class="settings-title">今日榜</h2>
       <p class="daily-date" id="dailyDate"></p>
       <p class="daily-sub">每天 0 点重置 · 前 10000 名</p>
-      <p id="dailyError" class="room-error hidden">日榜暂时连不上</p>
+      <p id="dailyError" class="room-error hidden">连不上</p>
       <div id="dailyNameBox" class="daily-name-box hidden">
         <input class="room-input" id="dailyNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="start-btn" id="dailyNameOk">确定</button>
         <p id="dailyNameErr" class="room-error hidden"></p>
       </div>
       <div id="dailyBoardBox" class="daily-board-box hidden">
+        <div class="toggle-label">
+          <span>参加日榜</span>
+          <div class="chips" id="dailyJoinChips">
+            <button type="button" class="chip" data-join="0">关</button>
+            <button type="button" class="chip" data-join="1">开</button>
+          </div>
+        </div>
         <p class="daily-you" id="dailyYou"></p>
         <div id="dailyList" class="room-board"></div>
         <p id="dailyTotal" class="room-count hidden"></p>
+      </div>
+    </section>
+
+    <section id="challenge" class="screen" aria-label="挑战">
+      <button type="button" class="exit-btn" id="challengeBack">返回</button>
+      <h2 class="settings-title">挑战</h2>
+      <p id="challengeError" class="room-error hidden">连不上</p>
+      <div id="challengeBox" class="challenge-box">
+        <p class="challenge-line" id="challengeConfig"></p>
+        <p class="challenge-line" id="challengeHolder"></p>
+        <p class="challenge-line challenge-muted" id="challengeHeld"></p>
+        <button type="button" class="start-btn" id="challengePlay">开始</button>
+        <div id="challengeEdit" class="hidden">
+          <button type="button" class="ghost-btn" id="challengeUpdateBtn">更新挑战</button>
+          <div id="challengeEditBox" class="hidden">
+            <div class="setting">
+              <div class="setting-label">
+                <span>闪现时长</span>
+                <span class="setting-value" id="challengeFlashLabel">0.15 秒</span>
+              </div>
+              <input type="range" id="challengeFlashRange" min="50" max="1000" step="25" value="150">
+            </div>
+            <div class="setting">
+              <div class="setting-label">
+                <span>数字位数</span>
+                <span class="setting-value" id="challengeDigitLabel">4 位</span>
+              </div>
+              <input type="range" id="challengeDigitRange" min="1" max="15" step="1" value="4">
+            </div>
+            <button type="button" class="start-btn" id="challengeSave">保存</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1007,7 +1256,6 @@
     </div>
   </div>
 
-  <script src="mqtt.min.js"></script>
   <script>
     (function () {
       const home = document.getElementById("home");
@@ -1095,6 +1343,42 @@
       const dailyList = document.getElementById("dailyList");
       const dailyTotal = document.getElementById("dailyTotal");
       const homeDaily = document.getElementById("homeDaily");
+      const homeBlock = document.getElementById("homeBlock");
+      const challenge = document.getElementById("challenge");
+      const challengeBtn = document.getElementById("challengeBtn");
+      const challengeBack = document.getElementById("challengeBack");
+      const challengeError = document.getElementById("challengeError");
+      const challengeConfig = document.getElementById("challengeConfig");
+      const challengeHolder = document.getElementById("challengeHolder");
+      const challengeHeld = document.getElementById("challengeHeld");
+      const challengePlay = document.getElementById("challengePlay");
+      const challengeEdit = document.getElementById("challengeEdit");
+      const challengeUpdateBtn = document.getElementById("challengeUpdateBtn");
+      const challengeEditBox = document.getElementById("challengeEditBox");
+      const challengeFlashRange = document.getElementById("challengeFlashRange");
+      const challengeDigitRange = document.getElementById("challengeDigitRange");
+      const challengeFlashLabel = document.getElementById("challengeFlashLabel");
+      const challengeDigitLabel = document.getElementById("challengeDigitLabel");
+      const challengeSave = document.getElementById("challengeSave");
+      const typeRow = document.getElementById("typeRow");
+      const typeInput = document.getElementById("typeInput");
+      const typeSubmit = document.getElementById("typeSubmit");
+      const typeTimer = document.getElementById("typeTimer");
+      const roomReveal = document.getElementById("roomReveal");
+      const waitText = document.getElementById("waitText");
+      const roomResume = document.getElementById("roomResume");
+      const roomAdmin = document.getElementById("roomAdmin");
+      const roomDiffLine = document.getElementById("roomDiffLine");
+      const roomFlashRange = document.getElementById("roomFlashRange");
+      const roomFlashLabel = document.getElementById("roomFlashLabel");
+      const roomDigitRange = document.getElementById("roomDigitRange");
+      const roomDigitLabel = document.getElementById("roomDigitLabel");
+      const roomAntiCheatBtn = document.getElementById("roomAntiCheatBtn");
+      const roomAnswerSecWrap = document.getElementById("roomAnswerSecWrap");
+      const roomAnswerSecRange = document.getElementById("roomAnswerSecRange");
+      const roomAnswerSecLabel = document.getElementById("roomAnswerSecLabel");
+      const joinDailyLabel = document.getElementById("joinDailyLabel");
+      const joinDailyHint = document.getElementById("joinDailyHint");
 
       const STORE = "guess-numbers-settings";
       const SESSIONS_KEY = "guess-numbers-sessions";
@@ -1108,33 +1392,29 @@
       let viewingId = null;
       let confirmResolve = null;
       let phase = "home";
+      let gameMode = "solo";
       let readyTimer = null;
       let flashTimer = null;
+      let inputTimer = null;
+      let pollTimer = null;
+      let typedLocked = false;
+      let challengeState = null;
+      let challengeHasBeat = false;
+      let roomDoc = null;
+      let roomMembers = [];
+      let roomAnswers = [];
+      let roomStayLobby = false;
+      let roomViewRound = -1;
+      let roomViewPhase = "";
+      let roomPollFail = 0;
       let lastNumber = "";
       let sessionScores = [0, 0, 0, 0, 0, 0, 0];
       let groupSelected = [];
 
       const NAME_KEY = "guess-numbers-name";
-      const PLAYER_ID_KEY = "guess-numbers-player-id";
-      const MQTT_URLS = [
-        "wss://broker.emqx.io:8084/mqtt",
-        "wss://broker.hivemq.com:8884/mqtt"
-      ];
-      const TOPIC_PREFIX = "syan1209-guess-numbers";
-      const STALE_MS = 6 * 60 * 60 * 1000;
-      const playerId = loadPlayerId();
       let roomCode = "";
       let roomDisplayName = "";
-      let roomCorrect = 0;
-      let roomWrong = 0;
-      let roomPlayers = new Map();
-      let roomTimer = null;
       let roomBusy = false;
-      let mqttClient = null;
-      let mqttConnecting = false;
-      let mqttWanted = false;
-      let mqttGen = 0;
-      let mqttWaiters = [];
 
       const FB_API_KEY = "AIzaSyDGONuo2f1PMZIGUXrDIXsbts29vFKKPOE";
       const FB_PROJECT = "guessnums-9f588";
@@ -1162,25 +1442,6 @@
       loadFbSession();
       ensureDailyDay();
 
-      function loadPlayerId() {
-        try {
-          let id = localStorage.getItem(PLAYER_ID_KEY);
-          if (id && /^[A-Za-z0-9_-]{8,64}$/.test(id)) return id;
-          if (crypto.randomUUID) id = crypto.randomUUID();
-          else {
-            id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-              const r = (Math.random() * 16) | 0;
-              const v = c === "x" ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-          }
-          localStorage.setItem(PLAYER_ID_KEY, id);
-          return id;
-        } catch (_) {
-          return "p" + String(Date.now()) + Math.random().toString(36).slice(2, 10);
-        }
-      }
-
       function loadName() {
         try {
           const n = localStorage.getItem(NAME_KEY);
@@ -1206,416 +1467,6 @@
         return String(1000 + Math.floor(Math.random() * 9000));
       }
 
-      function playerTopic() {
-        return TOPIC_PREFIX + "/" + roomCode + "/p/" + playerId;
-      }
-
-      function roomSubTopic() {
-        return TOPIC_PREFIX + "/" + roomCode + "/p/+";
-      }
-
-      function mqttConnectFn() {
-        const m = typeof mqtt !== "undefined" ? mqtt : null;
-        if (!m) return null;
-        if (typeof m.connect === "function") return function (url, opts) { return m.connect(url, opts); };
-        if (m.default && typeof m.default.connect === "function") {
-          return function (url, opts) { return m.default.connect(url, opts); };
-        }
-        return null;
-      }
-
-      function showRoomError() {
-        roomError.classList.remove("hidden");
-      }
-
-      function hideRoomError() {
-        roomError.classList.add("hidden");
-      }
-
-      function showRoomHint(msg) {
-        roomHint.textContent = msg;
-        roomHint.classList.remove("hidden");
-      }
-
-      function hideRoomHint() {
-        roomHint.textContent = "";
-        roomHint.classList.add("hidden");
-      }
-
-      function flushMqttWaiters(err, client) {
-        const list = mqttWaiters;
-        mqttWaiters = [];
-        list.forEach((w) => {
-          if (err) w.reject(err);
-          else w.resolve(client);
-        });
-      }
-
-      function failMqtt() {
-        mqttConnecting = false;
-        showRoomError();
-        flushMqttWaiters(new Error("mqtt"));
-      }
-
-      function disconnectMqtt() {
-        mqttGen += 1;
-        mqttConnecting = false;
-        const c = mqttClient;
-        mqttClient = null;
-        if (c) {
-          try { c.end(true); } catch (_) {}
-        }
-      }
-
-      function beginMqttAttempts() {
-        const connect = mqttConnectFn();
-        if (!connect) {
-          failMqtt();
-          return;
-        }
-        mqttGen += 1;
-        const gen = mqttGen;
-        mqttConnecting = true;
-
-        function tryUrl(i) {
-          if (gen !== mqttGen) return;
-          if (i >= MQTT_URLS.length) {
-            failMqtt();
-            return;
-          }
-          let settled = false;
-          let client;
-          try {
-            client = connect(MQTT_URLS[i], {
-              protocolVersion: 4,
-              connectTimeout: 8000,
-              reconnectPeriod: 0,
-              keepalive: 30,
-              clean: true,
-              clientId: "gn" + String(playerId).replace(/[^A-Za-z0-9]/g, "").slice(0, 16) + Math.random().toString(16).slice(2, 6)
-            });
-          } catch (_) {
-            tryUrl(i + 1);
-            return;
-          }
-          const timer = setTimeout(() => {
-            if (settled || gen !== mqttGen) return;
-            settled = true;
-            try { client.end(true); } catch (_) {}
-            tryUrl(i + 1);
-          }, 8500);
-          client.on("connect", () => {
-            if (settled || gen !== mqttGen) {
-              try { client.end(true); } catch (_) {}
-              return;
-            }
-            settled = true;
-            clearTimeout(timer);
-            mqttConnecting = false;
-            mqttClient = client;
-            hideRoomError();
-            client.on("message", onMqttMessage);
-            if (roomCode) {
-              subscribeRoom();
-              publishPresence();
-            }
-            flushMqttWaiters(null, client);
-          });
-          client.on("error", () => {
-            if (settled || gen !== mqttGen) return;
-            settled = true;
-            clearTimeout(timer);
-            try { client.end(true); } catch (_) {}
-            tryUrl(i + 1);
-          });
-          client.on("close", () => {
-            if (gen !== mqttGen) return;
-            if (mqttClient === client) {
-              mqttClient = null;
-              if (mqttWanted) {
-                setTimeout(() => {
-                  if (mqttWanted && !mqttClient && !mqttConnecting) beginMqttAttempts();
-                }, 2500);
-              }
-              return;
-            }
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            tryUrl(i + 1);
-          });
-        }
-
-        tryUrl(0);
-      }
-
-      function ensureMqtt() {
-        return new Promise((resolve, reject) => {
-          if (!mqttConnectFn()) {
-            showRoomError();
-            reject(new Error("mqtt"));
-            return;
-          }
-          if (mqttClient && mqttClient.connected) {
-            hideRoomError();
-            resolve(mqttClient);
-            return;
-          }
-          mqttWaiters.push({ resolve: resolve, reject: reject });
-          mqttWanted = true;
-          if (!mqttConnecting) beginMqttAttempts();
-        });
-      }
-
-      function onMqttMessage(topic, buf) {
-        if (!roomCode) return;
-        const prefix = TOPIC_PREFIX + "/" + roomCode + "/p/";
-        if (String(topic).indexOf(prefix) !== 0) return;
-        const pid = String(topic).slice(prefix.length);
-        if (!pid || pid.indexOf("/") !== -1) return;
-        const raw = buf ? buf.toString() : "";
-        if (!raw) {
-          roomPlayers.delete(pid);
-          renderRoomBoard();
-          renderSessionScores();
-          return;
-        }
-        try {
-          const data = JSON.parse(raw);
-          const t = Number(data.t);
-          if (!Number.isFinite(t) || Date.now() - t > STALE_MS) return;
-          const name = String(data.name || "").slice(0, 8);
-          const correct = Math.max(0, Math.floor(Number(data.correct) || 0));
-          const wrong = Math.max(0, Math.floor(Number(data.wrong) || 0));
-          roomPlayers.set(pid, { name: name, correct: correct, wrong: wrong, t: t });
-        } catch (_) {}
-        renderRoomBoard();
-        renderSessionScores();
-      }
-
-      function subscribeRoom() {
-        if (!mqttClient || !mqttClient.connected || !roomCode) return;
-        try {
-          mqttClient.subscribe(roomSubTopic(), { qos: 0 });
-        } catch (_) {}
-      }
-
-      function publishPresence() {
-        if (!roomCode) return;
-        const payload = {
-          name: roomDisplayName,
-          correct: roomCorrect,
-          wrong: roomWrong,
-          t: Date.now()
-        };
-        roomPlayers.set(playerId, payload);
-        renderRoomBoard();
-        renderSessionScores();
-        if (!mqttClient || !mqttClient.connected) return;
-        try {
-          mqttClient.publish(playerTopic(), JSON.stringify(payload), { retain: true, qos: 0 });
-        } catch (_) {}
-      }
-
-      function pruneRoomPlayers() {
-        const now = Date.now();
-        roomPlayers.forEach((p, id) => {
-          if (!p || !Number.isFinite(p.t) || now - p.t > STALE_MS) roomPlayers.delete(id);
-        });
-      }
-
-      function rankedPlayers() {
-        pruneRoomPlayers();
-        const list = [];
-        roomPlayers.forEach((p, id) => {
-          list.push({
-            id: id,
-            name: p.name,
-            correct: p.correct || 0,
-            wrong: p.wrong || 0,
-            t: p.t
-          });
-        });
-        list.sort((a, b) => b.correct - a.correct || a.wrong - b.wrong || b.t - a.t);
-        return list;
-      }
-
-      function myRoomRank() {
-        const list = rankedPlayers();
-        const idx = list.findIndex((p) => p.id === playerId);
-        if (idx < 0 || idx >= 7) return 0;
-        return idx + 1;
-      }
-
-      function roomHudText() {
-        const rank = myRoomRank();
-        const rankText = rank ? ("第" + rank) : "未上榜";
-        return "房间 " + roomCode + " · " + rankText;
-      }
-
-      function renderRoomBoard() {
-        const list = rankedPlayers();
-        roomBoard.innerHTML = "";
-        const top = list.slice(0, 7);
-        top.forEach((p, i) => {
-          const row = document.createElement("div");
-          row.className = "room-rank";
-          const nEl = document.createElement("span");
-          nEl.className = "room-rank-n";
-          nEl.textContent = String(i + 1);
-          const nameEl = document.createElement("span");
-          nameEl.className = "room-rank-name";
-          nameEl.textContent = p.name || "—";
-          const scoreEl = document.createElement("span");
-          scoreEl.className = "room-rank-score";
-          scoreEl.textContent = String(p.correct);
-          row.appendChild(nEl);
-          row.appendChild(nameEl);
-          row.appendChild(scoreEl);
-          roomBoard.appendChild(row);
-        });
-        if (list.length > 7) {
-          roomCount.textContent = "共 " + list.length + " 人";
-          roomCount.classList.remove("hidden");
-        } else {
-          roomCount.classList.add("hidden");
-        }
-      }
-
-      function renderRoom() {
-        const joined = !!roomCode;
-        roomJoin.classList.toggle("hidden", joined);
-        roomLobby.classList.toggle("hidden", !joined);
-        roomTitle.classList.toggle("hidden", joined);
-        if (!joined) {
-          if (!roomName.value) roomName.value = loadName();
-          return;
-        }
-        roomCodeBig.textContent = roomCode;
-        renderRoomBoard();
-      }
-
-      function startRoomTimer() {
-        if (roomTimer) return;
-        let beat = 0;
-        roomTimer = setInterval(() => {
-          if (!roomCode) return;
-          pruneRoomPlayers();
-          renderRoomBoard();
-          renderSessionScores();
-          beat += 2;
-          if (beat >= 46) {
-            beat = 0;
-            publishPresence();
-          }
-        }, 2000);
-      }
-
-      function stopRoomTimer() {
-        if (roomTimer) {
-          clearInterval(roomTimer);
-          roomTimer = null;
-        }
-      }
-
-      function joinAs(code, name) {
-        roomCode = code;
-        roomDisplayName = name;
-        roomCorrect = 0;
-        roomWrong = 0;
-        roomPlayers = new Map();
-        saveName(name);
-        hideRoomHint();
-        subscribeRoom();
-        publishPresence();
-        startRoomTimer();
-        renderRoom();
-      }
-
-      function clearRoomMembership() {
-        if (mqttClient && mqttClient.connected && roomCode) {
-          try {
-            mqttClient.publish(playerTopic(), "", { retain: true, qos: 0 });
-            mqttClient.unsubscribe(roomSubTopic());
-          } catch (_) {}
-        }
-        roomCode = "";
-        roomDisplayName = "";
-        roomCorrect = 0;
-        roomWrong = 0;
-        roomPlayers = new Map();
-        stopRoomTimer();
-        mqttWanted = false;
-        disconnectMqtt();
-      }
-
-      function goRoomLobby() {
-        clearTimers();
-        setAnswerControls(false);
-        hideBestBanner();
-        phase = "room";
-        readyText.classList.add("hidden");
-        flashText.classList.add("hidden");
-        speakText.classList.add("hidden");
-        sessionScoresEl.classList.add("hidden");
-        sessionScoresEl.classList.remove("room-hud");
-        renderRoom();
-        showScreen(room);
-      }
-
-      function openRoom() {
-        phase = "room";
-        mqttWanted = true;
-        renderRoom();
-        showScreen(room);
-        ensureMqtt().then(() => {
-          hideRoomError();
-        }).catch(() => {
-          showRoomError();
-        });
-      }
-
-      async function createRoom() {
-        const name = normalizeName(roomName.value);
-        if (!name) {
-          showRoomHint("请输入2–8个字的名字");
-          return;
-        }
-        hideRoomHint();
-        if (roomBusy) return;
-        roomBusy = true;
-        try {
-          await ensureMqtt();
-          joinAs(randomRoomCode(), name);
-        } catch (_) {
-          showRoomError();
-        }
-        roomBusy = false;
-      }
-
-      async function joinFromForm() {
-        const name = normalizeName(roomName.value);
-        const code = String(roomCodeInput.value || "").trim();
-        if (!name) {
-          showRoomHint("请输入2–8个字的名字");
-          return;
-        }
-        if (!/^[1-9]\d{3}$/.test(code)) {
-          showRoomHint("请输入4位房间号");
-          return;
-        }
-        hideRoomHint();
-        if (roomBusy) return;
-        roomBusy = true;
-        try {
-          await ensureMqtt();
-          joinAs(code, name);
-        } catch (_) {
-          showRoomError();
-        }
-        roomBusy = false;
-      }
-
       function loadSettings() {
         try {
           const raw = localStorage.getItem(STORE);
@@ -1630,11 +1481,12 @@
               mixMin: mix.min,
               mixMax: mix.max,
               sizePct: clampSize(parsed.sizePct),
-              playerCount: clampPlayers(parsed.playerCount)
+              playerCount: clampPlayers(parsed.playerCount),
+              joinDaily: !!parsed.joinDaily
             };
           }
         } catch (_) {}
-        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100, playerCount: 1 };
+        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100, playerCount: 1, joinDaily: false };
       }
 
       function clampMs(n) {
@@ -1678,6 +1530,7 @@
       }
 
       function saveSettings() {
+        clampDailyJoinSettings();
         try {
           localStorage.setItem(STORE, JSON.stringify(settingsState));
         } catch (_) {}
@@ -1893,15 +1746,17 @@
       }
 
       function beginSession() {
-        const n = roomCode ? 1 : settingsState.playerCount;
+        const n = gameMode === "solo" ? settingsState.playerCount : 1;
         currentSession = {
           id: newSessionId(),
           startAt: Date.now(),
           endAt: 0,
           playerCount: n,
           settings: {
-            flashMs: settingsState.flashMs,
-            digits: settingsState.digits,
+            flashMs: activeFlashMs(),
+            digits: (gameMode === "challenge" && challengeState) ? challengeState.digits
+              : (gameMode === "room" && roomDoc) ? roomDoc.digits
+              : settingsState.digits,
             mixMin: settingsState.mixMin,
             mixMax: settingsState.mixMax,
             sizePct: settingsState.sizePct
@@ -1968,6 +1823,16 @@
         }
         renderHomeBest();
         renderHomeDaily();
+        const why = dailyJoinBlockReason();
+        if (why) {
+          homeBlock.textContent = why;
+          homeBlock.classList.remove("hidden");
+          startBtn.disabled = true;
+        } else {
+          homeBlock.textContent = "";
+          homeBlock.classList.add("hidden");
+          startBtn.disabled = false;
+        }
       }
 
       function renderRecords() {
@@ -2013,6 +1878,7 @@
       }
 
       function renderSettings() {
+        clampDailyJoinSettings();
         flashRange.value = String(settingsState.flashMs);
         flashLabel.textContent = (settingsState.flashMs / 1000).toFixed(2) + " 秒";
         const isMix = settingsState.digits === "mix";
@@ -2027,16 +1893,29 @@
         sizeRange.value = String(settingsState.sizePct);
         sizeLabel.textContent = settingsState.sizePct + "%";
         playerLabel.textContent = playerCountLabel();
+        joinDailyLabel.textContent = settingsState.joinDaily ? "开" : "关";
+        joinDailyHint.textContent = settingsState.joinDaily
+          ? (globalName ? "打字作答 · 闪现 ≤ 0.15 秒 · 至少 6 位" : "先去日榜取名")
+          : "";
+        const jOn = settingsState.joinDaily;
+        document.getElementById("joinDailyOn").classList.toggle("active", jOn);
+        document.getElementById("joinDailyOff").classList.toggle("active", !jOn);
+        document.querySelectorAll("#dailyJoinChips .chip").forEach(function (btn) {
+          btn.classList.toggle("active", (btn.dataset.join === "1") === jOn);
+        });
         renderHomeHint();
         document.querySelectorAll("#sizePresets .chip").forEach((btn) => {
           btn.classList.toggle("active", Number(btn.dataset.size) === settingsState.sizePct);
         });
         document.querySelectorAll("#flashPresets .chip").forEach((btn) => {
-          btn.classList.toggle("active", Number(btn.dataset.ms) === settingsState.flashMs);
+          const ms = Number(btn.dataset.ms);
+          btn.classList.toggle("active", ms === settingsState.flashMs);
+          btn.classList.toggle("dim", settingsState.joinDaily && ms > 150);
         });
         document.querySelectorAll("#digitChips .chip").forEach((btn) => {
           const val = btn.dataset.digits === "mix" ? "mix" : Number(btn.dataset.digits);
           btn.classList.toggle("active", val === settingsState.digits);
+          btn.classList.toggle("dim", settingsState.joinDaily && val !== "mix" && Number(val) < 6);
         });
         document.querySelectorAll("#playerChips .chip").forEach((btn) => {
           btn.classList.toggle("active", Number(btn.dataset.players) === settingsState.playerCount);
@@ -2167,6 +2046,15 @@
         if (f.stringValue != null) return f.stringValue;
         if (f.integerValue != null) return Number(f.integerValue);
         if (f.doubleValue != null) return Number(f.doubleValue);
+        if (f.booleanValue != null) return !!f.booleanValue;
+        if (f.arrayValue) {
+          return (f.arrayValue.values || []).map(function (v) {
+            if (v.stringValue != null) return v.stringValue;
+            if (v.integerValue != null) return Number(v.integerValue);
+            if (v.booleanValue != null) return !!v.booleanValue;
+            return null;
+          }).filter(function (x) { return x != null; });
+        }
         return undefined;
       }
 
@@ -2283,7 +2171,7 @@
       }
 
       async function patchDailyPlayer() {
-        if (!globalName) return;
+        if (!globalName || !settingsState.joinDaily) return;
         await ensureFbAuth();
         if (!fbLocalId) throw new Error("auth");
         const s = ensureDailyDay();
@@ -2306,7 +2194,7 @@
       }
 
       function queueDailyUpload() {
-        if (!globalName) return;
+        if (!globalName || !settingsState.joinDaily) return;
         dailyWriteAgain = true;
         if (dailyWriteBusy) return;
         dailyWriteBusy = true;
@@ -2322,7 +2210,7 @@
       }
 
       function bumpDaily(ok) {
-        if (!globalName) return;
+        if (!globalName || !settingsState.joinDaily) return;
         const s = ensureDailyDay();
         if (ok) s.correct += 1;
         else s.wrong += 1;
@@ -2562,6 +2450,790 @@
         }
       }
 
+
+      const POLL_MS = 800;
+      function fsBool(b) { return { booleanValue: !!b }; }
+      function fsStrArray(arr) {
+        const values = (arr || []).map(function (s) { return { stringValue: String(s) }; });
+        return { arrayValue: { values: values } };
+      }
+      function parseDoc(data) {
+        if (!data || !data.fields) return null;
+        const out = {};
+        Object.keys(data.fields).forEach(function (k) { out[k] = fsVal(data.fields, k); });
+        out._id = String(data.name || "").split("/").pop();
+        return out;
+      }
+      function parseDocList(data) {
+        return ((data && data.documents) || []).map(parseDoc).filter(Boolean);
+      }
+      function isNotFound(res, data) {
+        if (res && res.status === 404) return true;
+        const err = data && data.error;
+        return !!(err && (err.code === 404 || err.status === "NOT_FOUND"));
+      }
+      function isConflict(res, data) {
+        if (res && res.status === 409) return true;
+        const err = data && data.error ? JSON.stringify(data.error) : "";
+        return /ALREADY_EXISTS/i.test(err);
+      }
+      async function fbGet(path) { return fbFetch(FB_DOCS + "/" + path, { method: "GET" }); }
+      async function fbList(path) { return fbFetch(FB_DOCS + "/" + path + "?pageSize=100", { method: "GET" }); }
+      async function fbPatch(path, fields, keys) {
+        const maskKeys = keys || Object.keys(fields);
+        const mask = maskKeys.map(function (f) { return "updateMask.fieldPaths=" + encodeURIComponent(f); }).join("&");
+        return fbFetch(FB_DOCS + "/" + path + (mask ? "?" + mask : ""), { method: "PATCH", body: JSON.stringify({ fields: fields }) });
+      }
+      async function fbCreate(coll, docId, fields) {
+        return fbFetch(FB_DOCS + "/" + coll + "?documentId=" + encodeURIComponent(docId), { method: "POST", body: JSON.stringify({ fields: fields }) });
+      }
+      async function fbDelete(path) { return fbFetch(FB_DOCS + "/" + path, { method: "DELETE" }); }
+
+      function clampAnswerSec(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return 3;
+        return Math.min(15, Math.max(1, Math.round(n)));
+      }
+      function clampDailyJoinSettings() {
+        if (!settingsState.joinDaily) return;
+        if (settingsState.flashMs > 150) settingsState.flashMs = 150;
+        if (settingsState.digits === "mix") {
+          if (settingsState.mixMin < 6) settingsState.mixMin = 6;
+          if (settingsState.mixMax < settingsState.mixMin) settingsState.mixMax = settingsState.mixMin;
+        } else if (settingsState.digits < 6) settingsState.digits = 6;
+      }
+      function dailyJoinBlockReason() {
+        if (!settingsState.joinDaily) return "";
+        if (!globalName) return "参加日榜需要先取名";
+        if (settingsState.flashMs > 150) return "日榜要求闪现 ≤ 0.15 秒";
+        if (settingsState.digits === "mix") {
+          if (settingsState.mixMin < 6) return "日榜随机最少 6 位";
+        } else if (settingsState.digits < 6) return "日榜要求至少 6 位";
+        return "";
+      }
+      function setJoinDaily(on) {
+        if (on && !globalName) {
+          settingsState.joinDaily = false;
+          saveSettings();
+          openDaily();
+          return;
+        }
+        settingsState.joinDaily = !!on;
+        if (settingsState.joinDaily) clampDailyJoinSettings();
+        saveSettings();
+      }
+      function usesTyping() {
+        if (gameMode === "daily" || gameMode === "challenge") return true;
+        if (gameMode === "room" && roomDoc && roomDoc.antiCheat) return true;
+        return false;
+      }
+      function activeFlashMs() {
+        if (gameMode === "challenge" && challengeState) return challengeState.flashMs;
+        if (gameMode === "room" && roomDoc) return roomDoc.flashMs;
+        return settingsState.flashMs;
+      }
+
+      function formatHeld(since) {
+        const start = Number(since) || 0;
+        if (!start) return "已保持 —";
+        const s = Math.max(0, Math.floor((Date.now() - start) / 1000));
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        if (h) return "已保持 " + h + " 小时 " + m + " 分";
+        if (m) return "已保持 " + m + " 分 " + sec + " 秒";
+        return "已保持 " + sec + " 秒";
+      }
+      function challengeFields(st) {
+        return {
+          flashMs: fsInt(st.flashMs),
+          digits: fsInt(st.digits),
+          holderId: fsStr(st.holderId || ""),
+          holderName: fsStr(st.holderName || "系统"),
+          heldSince: fsInt(st.heldSince || Date.now())
+        };
+      }
+      function parseChallenge(doc) {
+        if (!doc) return null;
+        return {
+          flashMs: clampMs(doc.flashMs),
+          digits: clampDigit(doc.digits, 4),
+          holderId: String(doc.holderId || ""),
+          holderName: String(doc.holderName || "系统"),
+          heldSince: Number(doc.heldSince) || 0
+        };
+      }
+      function renderChallenge() {
+        if (!challengeState) {
+          challengeConfig.textContent = "";
+          challengeHolder.textContent = "";
+          challengeHeld.textContent = "";
+          return;
+        }
+        challengeConfig.textContent = "闪现 " + (challengeState.flashMs / 1000).toFixed(2) + " 秒 · " + challengeState.digits + " 位";
+        challengeHolder.textContent = "最强挑战者 " + (challengeState.holderName || "系统");
+        challengeHeld.textContent = formatHeld(challengeState.heldSince);
+        challengeEdit.classList.toggle("hidden", !challengeHasBeat);
+        challengeFlashLabel.textContent = (Number(challengeFlashRange.value) / 1000).toFixed(2) + " 秒";
+        challengeDigitLabel.textContent = challengeDigitRange.value + " 位";
+      }
+      async function fetchOwnBeat() {
+        if (!fbLocalId) { challengeHasBeat = false; return; }
+        try {
+          const res = await fbGet("challenge/beats/" + encodeURIComponent(fbLocalId));
+          challengeHasBeat = res.ok;
+        } catch (_) { challengeHasBeat = false; }
+      }
+      async function seedChallenge() {
+        const st = { flashMs: 150, digits: 4, holderId: "", holderName: "系统", heldSince: Date.now() };
+        const res = await fbCreate("challenge", "current", challengeFields(st));
+        const data = await res.json().catch(function () { return {}; });
+        if (res.ok) return st;
+        if (isConflict(res, data)) {
+          const got = await fbGet("challenge/current");
+          return parseChallenge(parseDoc(await got.json().catch(function () { return {}; })));
+        }
+        throw new Error("net");
+      }
+      async function loadOrSeedChallenge() {
+        const res = await fbGet("challenge/current");
+        const data = await res.json().catch(function () { return {}; });
+        if (res.ok) { challengeState = parseChallenge(parseDoc(data)); return; }
+        if (isNotFound(res, data)) { challengeState = await seedChallenge(); return; }
+        throw new Error("net");
+      }
+      async function refreshChallenge() {
+        try {
+          await ensureFbAuth();
+          await loadOrSeedChallenge();
+          await fetchOwnBeat();
+          challengeError.classList.add("hidden");
+          renderChallenge();
+        } catch (_) { challengeError.classList.remove("hidden"); }
+      }
+      function openChallenge() {
+        phase = "challenge";
+        showScreen(challenge);
+        renderChallenge();
+        refreshChallenge();
+        ensurePoll();
+      }
+      async function onChallengeBeat() {
+        const name = globalName || roomDisplayName || loadName() || "玩家";
+        try {
+          await ensureFbAuth();
+          await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), { t: fsInt(Date.now()), name: fsStr(name) }, ["t", "name"]);
+          challengeHasBeat = true;
+          if (challengeState) {
+            const keep = {
+              flashMs: challengeState.flashMs,
+              digits: challengeState.digits,
+              holderId: fbLocalId,
+              holderName: name,
+              heldSince: Date.now()
+            };
+            const res = await fbPatch("challenge/current", challengeFields(keep), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
+            if (res.ok) challengeState = keep;
+          }
+          renderChallenge();
+        } catch (_) {}
+      }
+      async function saveChallengeConfig() {
+        if (!challengeHasBeat || !challengeState) return;
+        const next = {
+          flashMs: clampMs(challengeFlashRange.value),
+          digits: clampDigit(Number(challengeDigitRange.value), 4),
+          holderId: fbLocalId,
+          holderName: globalName || challengeState.holderName || "玩家",
+          heldSince: Date.now()
+        };
+        try {
+          const res = await fbPatch("challenge/current", challengeFields(next), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
+          if (!res.ok) throw new Error("net");
+          challengeState = next;
+          challengeEditBox.classList.add("hidden");
+          challengeError.classList.add("hidden");
+          renderChallenge();
+        } catch (_) { challengeError.classList.remove("hidden"); }
+      }
+
+      function showRoomError(on) {
+        if (on === false) roomError.classList.add("hidden");
+        else if (on === true) roomError.classList.remove("hidden");
+        else roomError.classList.remove("hidden");
+      }
+      function hideRoomError() { roomError.classList.add("hidden"); }
+      function showRoomHint(msg) {
+        if (!msg) { roomHint.textContent = ""; roomHint.classList.add("hidden"); return; }
+        roomHint.textContent = msg;
+        roomHint.classList.remove("hidden");
+      }
+      function hideRoomHint() { showRoomHint(""); }
+      function isRoomOwner() { return !!(roomDoc && fbLocalId && roomDoc.ownerId === fbLocalId); }
+      function isRoomAdmin() {
+        if (!roomDoc || !fbLocalId) return false;
+        if (roomDoc.ownerId === fbLocalId) return true;
+        return (roomDoc.adminIds || []).indexOf(fbLocalId) >= 0;
+      }
+      function myRoomAnswer() {
+        if (!roomDoc || !fbLocalId) return null;
+        const a = roomAnswers.find(function (x) { return x._id === fbLocalId; });
+        if (!a || Number(a.roundId) !== Number(roomDoc.roundId)) return null;
+        return a;
+      }
+      function roomFieldsFrom(doc) {
+        return {
+          ownerId: fsStr(doc.ownerId || ""),
+          ownerName: fsStr(doc.ownerName || ""),
+          adminIds: fsStrArray(Array.isArray(doc.adminIds) ? doc.adminIds.map(String) : []),
+          antiCheat: fsBool(!!doc.antiCheat),
+          answerSeconds: fsInt(clampAnswerSec(doc.answerSeconds)),
+          phase: fsStr(doc.phase || "lobby"),
+          roundId: fsInt(doc.roundId || 0),
+          number: fsStr(doc.number || ""),
+          flashMs: fsInt(doc.flashMs || 400),
+          digits: fsInt(doc.digits || 5),
+          flashAt: fsInt(doc.flashAt || 0),
+          inputUntil: fsInt(doc.inputUntil || 0),
+          replay: fsBool(!!doc.replay)
+        };
+      }
+      function parseRoom(doc) {
+        if (!doc) return null;
+        return {
+          ownerId: String(doc.ownerId || ""),
+          ownerName: String(doc.ownerName || ""),
+          adminIds: Array.isArray(doc.adminIds) ? doc.adminIds.map(String) : [],
+          antiCheat: !!doc.antiCheat,
+          answerSeconds: clampAnswerSec(doc.answerSeconds),
+          phase: String(doc.phase || "lobby"),
+          roundId: Math.max(0, Math.floor(Number(doc.roundId) || 0)),
+          number: String(doc.number || ""),
+          flashMs: clampMs(doc.flashMs),
+          digits: clampDigit(doc.digits, 5),
+          flashAt: Number(doc.flashAt) || 0,
+          inputUntil: Number(doc.inputUntil) || 0,
+          replay: !!doc.replay
+        };
+      }
+      function visualRoomPhase() {
+        if (!roomDoc) return "lobby";
+        const p = roomDoc.phase;
+        if (p === "lobby") return "lobby";
+        const now = Date.now();
+        if (p === "reveal" || (roomDoc.inputUntil && now > roomDoc.inputUntil)) return "reveal";
+        const flashEnd = (roomDoc.flashAt || 0) + (roomDoc.flashMs || 0);
+        if (now < flashEnd) return "flash";
+        return "input";
+      }
+      function renderRoomBoard() {
+        roomBoard.innerHTML = "";
+        const list = roomMembers.slice().sort(function (a, b) { return String(a.name || "").localeCompare(String(b.name || "")); });
+        list.forEach(function (m, i) {
+          const row = document.createElement("div");
+          row.className = "room-rank";
+          const nEl = document.createElement("span");
+          nEl.className = "room-rank-n";
+          nEl.textContent = String(i + 1);
+          const nameEl = document.createElement("span");
+          nameEl.className = "room-rank-name";
+          let label = m.name || "—";
+          if (roomDoc && m._id === roomDoc.ownerId) label += " · 房主";
+          else if (roomDoc && (roomDoc.adminIds || []).indexOf(m._id) >= 0) label += " · 管理";
+          nameEl.textContent = label;
+          row.appendChild(nEl);
+          row.appendChild(nameEl);
+          if (isRoomOwner() && m._id !== fbLocalId) {
+            const actions = document.createElement("div");
+            actions.className = "room-rank-actions";
+            const tf = document.createElement("button");
+            tf.type = "button"; tf.className = "room-mini"; tf.textContent = "转让";
+            tf.addEventListener("click", function (e) { e.stopPropagation(); transferRoom(m); });
+            actions.appendChild(tf);
+            const isAdm = (roomDoc.adminIds || []).indexOf(m._id) >= 0;
+            const ad = document.createElement("button");
+            ad.type = "button"; ad.className = "room-mini"; ad.textContent = isAdm ? "移除管理" : "管理员";
+            ad.addEventListener("click", function (e) { e.stopPropagation(); toggleAdmin(m._id, !isAdm); });
+            actions.appendChild(ad);
+            row.appendChild(actions);
+          }
+          roomBoard.appendChild(row);
+        });
+        if (list.length) { roomCount.textContent = list.length + " 人"; roomCount.classList.remove("hidden"); }
+        else roomCount.classList.add("hidden");
+      }
+      function renderRoom() { renderRoomLobby(); }
+      function renderRoomLobby() {
+        const joined = !!roomCode;
+        roomJoin.classList.toggle("hidden", joined);
+        roomLobby.classList.toggle("hidden", !joined);
+        roomTitle.classList.toggle("hidden", joined);
+        if (!joined) {
+          if (!roomName.value) roomName.value = globalName || loadName();
+          roomAdmin.classList.add("hidden");
+          roomDiffLine.classList.add("hidden");
+          return;
+        }
+        roomCodeBig.textContent = roomCode;
+        renderRoomBoard();
+        const flashMs = roomDoc ? clampMs(roomDoc.flashMs) : 400;
+        const digits = roomDoc ? clampDigit(roomDoc.digits, 5) : 5;
+        const diffText = formatFlashCompact(flashMs) + " · " + digits + " 位";
+        roomDiffLine.textContent = "难度 " + diffText;
+        roomDiffLine.classList.remove("hidden");
+        const admin = isRoomAdmin();
+        roomAdmin.classList.toggle("hidden", !admin);
+        if (admin && roomDoc) {
+          roomFlashRange.value = String(flashMs);
+          roomFlashLabel.textContent = formatFlashCompact(flashMs);
+          roomDigitRange.value = String(digits);
+          roomDigitLabel.textContent = digits + " 位";
+          roomAntiCheatBtn.classList.toggle("active", !!roomDoc.antiCheat);
+          roomAnswerSecWrap.classList.toggle("hidden", !roomDoc.antiCheat);
+          roomAnswerSecRange.value = String(roomDoc.answerSeconds || 3);
+          roomAnswerSecLabel.textContent = (roomDoc.answerSeconds || 3) + " 秒";
+        }
+        const vis = visualRoomPhase();
+        roomStart.classList.toggle("hidden", !admin || vis === "flash" || vis === "input");
+        roomStart.textContent = vis === "reveal" ? "下一题" : "开始";
+        roomResume.classList.toggle("hidden", vis === "lobby");
+      }
+      function renderRoomRevealList() {
+        roomReveal.innerHTML = "";
+        const roundId = roomDoc ? roomDoc.roundId : -1;
+        const byId = {};
+        roomAnswers.forEach(function (a) { if (Number(a.roundId) === Number(roundId)) byId[a._id] = a; });
+        const vis = visualRoomPhase();
+        const mine = myRoomAnswer();
+        const showOthers = vis === "reveal" || !!mine;
+        roomMembers.forEach(function (m) {
+          const row = document.createElement("div");
+          row.className = "room-rank";
+          const name = document.createElement("span");
+          name.className = "room-rank-name";
+          name.textContent = m.name || "—";
+          const score = document.createElement("span");
+          score.className = "room-rank-score";
+          if (m._id === fbLocalId) {
+            const a = byId[m._id];
+            score.textContent = a ? (a.ok ? "对" : (a.answer ? a.answer : "未答")) : "…";
+          } else if (!showOthers) score.textContent = "…";
+          else {
+            const a = byId[m._id];
+            if (!a) score.textContent = vis === "reveal" ? "未答" : "…";
+            else if (a.ok) score.textContent = a.answer ? a.answer + " 对" : "对";
+            else score.textContent = a.answer ? a.answer : "错";
+          }
+          row.appendChild(name);
+          row.appendChild(score);
+          roomReveal.appendChild(row);
+        });
+      }
+      async function patchRoomDoc(partial, keys) {
+        if (!roomCode || !roomDoc) return false;
+        const next = Object.assign({}, roomDoc, partial);
+        const fields = roomFieldsFrom(next);
+        const useKeys = keys || Object.keys(partial);
+        const send = {};
+        useKeys.forEach(function (k) { send[k] = fields[k]; });
+        const res = await fbPatch("rooms/" + roomCode, send, useKeys);
+        if (!res.ok) return false;
+        roomDoc = next;
+        return true;
+      }
+      async function writeMember(name) {
+        const fields = { name: fsStr(name), joinedAt: fsInt(Date.now()) };
+        const res = await fbCreate("rooms/" + roomCode + "/members", fbLocalId, fields);
+        const data = await res.json().catch(function () { return {}; });
+        if (res.ok) return true;
+        if (isConflict(res, data)) {
+          await fbPatch("rooms/" + roomCode + "/members/" + encodeURIComponent(fbLocalId), fields, ["name", "joinedAt"]);
+          return true;
+        }
+        return false;
+      }
+      async function fetchRoomBundle() {
+        const pack = await Promise.all([fbGet("rooms/" + roomCode), fbList("rooms/" + roomCode + "/members"), fbList("rooms/" + roomCode + "/answers")]);
+        const rRes = pack[0], mRes = pack[1], aRes = pack[2];
+        const rData = await rRes.json().catch(function () { return {}; });
+        if (isNotFound(rRes, rData)) return { missing: true };
+        if (!rRes.ok) throw new Error("net");
+        const doc = parseRoom(parseDoc(rData));
+        const members = mRes.ok ? parseDocList(await mRes.json().catch(function () { return {}; })) : [];
+        if (!mRes.ok) await mRes.text().catch(function () { return ""; });
+        const answers = aRes.ok ? parseDocList(await aRes.json().catch(function () { return {}; })) : [];
+        if (!aRes.ok) await aRes.text().catch(function () { return ""; });
+        return { doc: doc, members: members, answers: answers };
+      }
+      async function pollRoomOnce() {
+        if (!roomCode) return;
+        try {
+          const bundle = await fetchRoomBundle();
+          if (bundle.missing) {
+            showRoomError(true);
+            showRoomHint("房间已解散");
+            clearRoomMembership(true);
+            renderRoomLobby();
+            return;
+          }
+          roomDoc = bundle.doc;
+          roomMembers = bundle.members;
+          roomAnswers = bundle.answers;
+          roomPollFail = 0;
+          hideRoomError();
+          maybeAdvanceRoom();
+          applyRoomView();
+        } catch (_) {
+          roomPollFail += 1;
+          if (roomPollFail >= 2) showRoomError(true);
+        }
+      }
+      function everyoneAnswered() {
+        if (!roomDoc || !roomMembers.length) return false;
+        const rid = Number(roomDoc.roundId);
+        const got = {};
+        roomAnswers.forEach(function (a) { if (Number(a.roundId) === rid) got[a._id] = true; });
+        return roomMembers.every(function (m) { return got[m._id]; });
+      }
+      function maybeAdvanceRoom() {
+        if (!roomDoc || !isRoomAdmin()) return;
+        const vis = visualRoomPhase();
+        if (vis === "input" && roomDoc.phase === "flash") patchRoomDoc({ phase: "input" }, ["phase"]);
+        if (roomDoc.phase !== "reveal" && vis !== "lobby") {
+          if (everyoneAnswered() || Date.now() > (roomDoc.inputUntil || 0)) {
+            patchRoomDoc({ phase: "reveal" }, ["phase"]);
+          }
+        }
+      }
+      function applyRoomView() {
+        if (!roomCode || !roomDoc) return;
+        const vis = visualRoomPhase();
+        renderRoomLobby();
+        const onRoom = room.classList.contains("active");
+        const onGame = game.classList.contains("active") && gameMode === "room";
+        if (vis === "lobby") { if (onGame) goRoomLobby(); return; }
+        if (onRoom && !roomStayLobby) enterRoomPlay();
+        else if (onGame) syncRoomPlay(vis);
+      }
+      function enterRoomPlay() {
+        gameMode = "room";
+        roomStayLobby = false;
+        if (!currentSession) beginSession();
+        showScreen(game);
+        syncRoomPlay(visualRoomPhase());
+      }
+      function syncRoomPlay(vis) {
+        if (!roomDoc) return;
+        lastNumber = String(roomDoc.number || "");
+        if (vis === "flash") enterRoomFlash();
+        else if (vis === "input") enterRoomInput();
+        else enterRoomReveal();
+      }
+      function enterRoomFlash() {
+        const round = roomDoc.roundId;
+        if (roomViewRound === round && roomViewPhase === "flash") return;
+        roomViewRound = round;
+        roomViewPhase = "flash";
+        phase = "flash";
+        typedLocked = false;
+        hideBestBanner();
+        setAnswerControls(false);
+        flashText.classList.remove("answer");
+        flashText.textContent = lastNumber;
+        showOnly(flashText);
+        applyNumberSize();
+        renderSessionScores();
+        vibrate();
+        clearTimers();
+        const left = Math.max(0, (roomDoc.flashAt || 0) + (roomDoc.flashMs || 0) - Date.now());
+        flashTimer = setTimeout(function () {
+          flashTimer = null;
+          if (gameMode === "room") enterRoomInput();
+        }, left);
+      }
+      function enterRoomInput() {
+        const round = roomDoc.roundId;
+        if (roomViewRound === round && roomViewPhase === "input" && (phase === "input" || phase === "speak" || phase === "answer")) {
+          updateInputTimer();
+          if (myRoomAnswer()) { waitText.classList.remove("hidden"); renderRoomRevealList(); roomReveal.classList.remove("hidden"); }
+          return;
+        }
+        roomViewRound = round;
+        roomViewPhase = "input";
+        clearTimers();
+        hideBestBanner();
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+        if (myRoomAnswer()) { phase = "input"; setAnswerControls(true); return; }
+        if (roomDoc.antiCheat) {
+          phase = "input";
+          if (roomDoc.inputUntil && Date.now() > roomDoc.inputUntil) { submitRoomAnswer("", false); return; }
+          setAnswerControls(true);
+          focusType();
+          updateInputTimer();
+          const left = Math.max(50, (roomDoc.inputUntil || Date.now()) - Date.now());
+          inputTimer = setTimeout(function () {
+            inputTimer = null;
+            if (gameMode === "room" && phase === "input" && !myRoomAnswer()) submitRoomAnswer("", false);
+          }, left);
+        } else {
+          phase = "speak";
+          setAnswerControls(false);
+          showOnly(speakText);
+          renderSessionScores();
+          vibrate();
+        }
+      }
+      function enterRoomReveal() {
+        roomViewRound = roomDoc.roundId;
+        roomViewPhase = "reveal";
+        phase = "answer";
+        clearTimers();
+        lastNumber = String(roomDoc.number || "");
+        flashText.classList.add("answer");
+        flashText.textContent = lastNumber;
+        showOnly(flashText);
+        requestAnimationFrame(applyNumberSize);
+        setAnswerControls(true);
+        vibrate();
+      }
+      async function submitRoomAnswer(answer, ok) {
+        if (!roomCode || !roomDoc || !fbLocalId) return;
+        if (myRoomAnswer()) return;
+        typedLocked = true;
+        const body = { roundId: fsInt(roomDoc.roundId), answer: fsStr(answer == null ? "" : answer), ok: fsBool(!!ok), t: fsInt(Date.now()) };
+        try {
+          const res = await fbPatch("rooms/" + roomCode + "/answers/" + encodeURIComponent(fbLocalId), body, ["roundId", "answer", "ok", "t"]);
+          if (!res.ok) throw new Error("net");
+          roomAnswers = roomAnswers.filter(function (a) { return a._id !== fbLocalId; });
+          roomAnswers.push({ _id: fbLocalId, roundId: roomDoc.roundId, answer: String(answer || ""), ok: !!ok, t: Date.now() });
+          hideRoomError();
+        } catch (_) { typedLocked = false; showRoomError(true); return; }
+        if (ok) considerBest();
+        setAnswerControls(true);
+        maybeAdvanceRoom();
+        pollRoomOnce();
+      }
+      async function startRoomRound(replay) {
+        if (!isRoomAdmin() || !roomDoc) return;
+        const number = replay ? String(roomDoc.number || lastNumber || randomNumber()) : randomNumber();
+        const now = Date.now();
+        const flashMs = roomDoc.flashMs || activeFlashMs();
+        const anti = !!roomDoc.antiCheat;
+        const ansSec = clampAnswerSec(roomDoc.answerSeconds);
+        const next = {
+          phase: "flash",
+          roundId: (roomDoc.roundId || 0) + 1,
+          number: number,
+          flashMs: flashMs,
+          digits: number.length,
+          flashAt: now,
+          inputUntil: now + flashMs + (anti ? ansSec * 1000 : 60000),
+          replay: !!replay
+        };
+        const ok = await patchRoomDoc(next, ["phase", "roundId", "number", "flashMs", "digits", "flashAt", "inputUntil", "replay"]);
+        if (!ok) { showRoomError(true); return; }
+        roomViewRound = -1;
+        roomViewPhase = "";
+        typedLocked = false;
+        lastNumber = number;
+        enterRoomPlay();
+      }
+      async function transferRoom(member) {
+        if (!isRoomOwner() || !member) return;
+        const adminIds = (roomDoc.adminIds || []).filter(function (id) { return id !== member._id; });
+        const ok = await patchRoomDoc({ ownerId: member._id, ownerName: member.name || "", adminIds: adminIds }, ["ownerId", "ownerName", "adminIds"]);
+        if (!ok) showRoomError(true);
+        renderRoomLobby();
+      }
+      async function toggleAdmin(uid, add) {
+        if (!isRoomOwner()) return;
+        let ids = (roomDoc.adminIds || []).slice();
+        if (add) { if (ids.indexOf(uid) < 0) ids.push(uid); }
+        else ids = ids.filter(function (id) { return id !== uid; });
+        const ok = await patchRoomDoc({ adminIds: ids }, ["adminIds"]);
+        if (!ok) showRoomError(true);
+        renderRoomLobby();
+      }
+      async function createRoom() {
+        const name = normalizeName(roomName.value);
+        if (!name) { showRoomHint("请输入2–8个字的名字"); return; }
+        hideRoomHint();
+        if (roomBusy) return;
+        roomBusy = true;
+        try {
+          await ensureFbAuth();
+          let code = "", created = false, doc = null;
+          for (let i = 0; i < 16; i++) {
+            code = randomRoomCode();
+            doc = {
+              ownerId: fbLocalId, ownerName: name, adminIds: [], antiCheat: false, answerSeconds: 3,
+              phase: "lobby", roundId: 0, number: "", flashMs: settingsState.flashMs,
+              digits: settingsState.digits === "mix" ? settingsState.mixMin : settingsState.digits,
+              flashAt: 0, inputUntil: 0, replay: false
+            };
+            const res = await fbCreate("rooms", code, roomFieldsFrom(doc));
+            const data = await res.json().catch(function () { return {}; });
+            if (res.ok) { created = true; roomDoc = doc; break; }
+            if (!isConflict(res, data)) throw new Error("net");
+          }
+          if (!created) throw new Error("net");
+          roomCode = code;
+          roomDisplayName = name;
+          saveName(name);
+          if (!(await writeMember(name))) throw new Error("net");
+          roomMembers = [{ _id: fbLocalId, name: name, joinedAt: Date.now() }];
+          roomAnswers = [];
+          hideRoomError();
+          renderRoomLobby();
+          ensurePoll();
+        } catch (_) { showRoomError(true); }
+        roomBusy = false;
+      }
+      async function joinFromForm() {
+        const name = normalizeName(roomName.value);
+        const code = String(roomCodeInput.value || "").trim();
+        if (!name) { showRoomHint("请输入2–8个字的名字"); return; }
+        if (!/^[1-9]\d{3}$/.test(code)) { showRoomHint("请输入4位房间号"); return; }
+        hideRoomHint();
+        if (roomBusy) return;
+        roomBusy = true;
+        try {
+          await ensureFbAuth();
+          const res = await fbGet("rooms/" + code);
+          const data = await res.json().catch(function () { return {}; });
+          if (isNotFound(res, data)) { showRoomHint("房间不存在"); roomBusy = false; return; }
+          if (!res.ok) throw new Error("net");
+          roomDoc = parseRoom(parseDoc(data));
+          roomCode = code;
+          roomDisplayName = name;
+          saveName(name);
+          if (!(await writeMember(name))) throw new Error("net");
+          hideRoomError();
+          renderRoomLobby();
+          ensurePoll();
+          await pollRoomOnce();
+        } catch (_) { showRoomError(true); }
+        roomBusy = false;
+      }
+      function clearRoomMembership(silent) {
+        const code = roomCode;
+        const uid = fbLocalId;
+        if (code && uid && !silent) fbDelete("rooms/" + code + "/members/" + encodeURIComponent(uid)).catch(function () {});
+        roomCode = "";
+        roomDisplayName = "";
+        roomDoc = null;
+        roomMembers = [];
+        roomAnswers = [];
+        roomStayLobby = false;
+        roomViewRound = -1;
+        roomViewPhase = "";
+        stopPollIfIdle();
+      }
+      function goRoomLobby() {
+        clearTimers();
+        setAnswerControls(false);
+        hideBestBanner();
+        phase = "room";
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+        sessionScoresEl.classList.add("hidden");
+        sessionScoresEl.classList.remove("room-hud");
+        renderRoomLobby();
+        showScreen(room);
+        ensurePoll();
+      }
+      function openRoom() {
+        phase = "room";
+        renderRoomLobby();
+        showScreen(room);
+        ensureFbAuth().then(function () {
+          hideRoomError();
+          if (roomCode) { ensurePoll(); pollRoomOnce(); }
+        }).catch(function () { showRoomError(true); });
+      }
+
+      function shouldPoll() {
+        if (roomCode) return true;
+        if (challenge.classList.contains("active")) return true;
+        if (gameMode === "challenge" && game.classList.contains("active")) return true;
+        return false;
+      }
+      function ensurePoll() {
+        if (pollTimer) return;
+        pollTimer = setInterval(tickPoll, POLL_MS);
+        tickPoll();
+      }
+      function stopPollIfIdle() {
+        if (shouldPoll()) return;
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+      function tickPoll() {
+        if (roomCode) pollRoomOnce();
+        if (challenge.classList.contains("active") || (gameMode === "challenge" && game.classList.contains("active"))) {
+          if (challengeState) renderChallenge();
+          refreshChallenge();
+        }
+        if (!shouldPoll()) stopPollIfIdle();
+      }
+
+      function updateInputTimer() {
+        if (gameMode !== "room" || !roomDoc || !roomDoc.antiCheat || phase !== "input") {
+          typeTimer.classList.add("hidden");
+          return;
+        }
+        const left = Math.max(0, Math.ceil(((roomDoc.inputUntil || 0) - Date.now()) / 1000));
+        typeTimer.textContent = left + " 秒";
+        typeTimer.classList.remove("hidden");
+      }
+      function focusType() {
+        typeInput.disabled = false;
+        typeInput.value = "";
+        typedLocked = false;
+        typeInput.maxLength = (lastNumber || "").length || 15;
+        setTimeout(function () { try { typeInput.focus(); } catch (_) {} }, 50);
+      }
+      function enterInput() {
+        phase = "input";
+        readyText.classList.add("hidden");
+        flashText.classList.add("hidden");
+        speakText.classList.add("hidden");
+        setAnswerControls(true);
+        renderSessionScores();
+        vibrate();
+        focusType();
+      }
+      function enterTypedReveal(ok) {
+        if (currentSession) {
+          currentSession.rounds += 1;
+          if (ok) currentSession.correct += 1;
+          else currentSession.wrong += 1;
+        }
+        if (ok) considerBest();
+        if (gameMode === "daily") bumpDaily(ok);
+        if (gameMode === "challenge" && ok) onChallengeBeat();
+        phase = "answer";
+        flashText.classList.add("answer");
+        flashText.textContent = lastNumber;
+        showOnly(flashText);
+        setAnswerControls(true);
+        requestAnimationFrame(applyNumberSize);
+        renderSessionScores();
+        vibrate();
+      }
+      function submitTyped() {
+        if (typedLocked || phase !== "input") return;
+        const typed = String(typeInput.value || "").replace(/\D/g, "");
+        if (gameMode === "room") {
+          submitRoomAnswer(typed, typed.length > 0 && typed === String(lastNumber));
+          return;
+        }
+        typedLocked = true;
+        typeInput.disabled = true;
+        enterTypedReveal(typed === String(lastNumber));
+      }
       function showScreen(el) {
         home.classList.remove("active");
         game.classList.remove("active");
@@ -2570,11 +3242,14 @@
         recordDetail.classList.remove("active");
         room.classList.remove("active");
         daily.classList.remove("active");
+        challenge.classList.remove("active");
         el.classList.add("active");
         if (el === home) {
           renderHomeHint();
           refreshDailyRankSilent();
         }
+        if (el === challenge || roomCode) ensurePoll();
+        else stopPollIfIdle();
       }
 
       function setAppHeight() {
@@ -2593,7 +3268,7 @@
 
       function relayoutGame() {
         setAppHeight();
-        if (phase === "flash" || phase === "answer" || phase === "ready" || phase === "speak") {
+        if (phase === "flash" || phase === "answer" || phase === "ready" || phase === "speak" || phase === "input") {
           requestAnimationFrame(applyNumberSize);
         }
       }
@@ -2629,6 +3304,10 @@
           clearTimeout(flashTimer);
           flashTimer = null;
         }
+        if (inputTimer !== null) {
+          clearTimeout(inputTimer);
+          inputTimer = null;
+        }
       }
 
       function vibrate() {
@@ -2646,6 +3325,8 @@
 
       function randomNumber() {
         let digits = settingsState.digits;
+        if (gameMode === "challenge" && challengeState) digits = challengeState.digits;
+        if (gameMode === "room" && roomDoc) digits = clampDigit(roomDoc.digits, 5);
         if (digits === "mix") {
           const span = settingsState.mixMax - settingsState.mixMin + 1;
           digits = settingsState.mixMin + Math.floor(Math.random() * span);
@@ -2667,14 +3348,20 @@
       }
 
       function renderSessionScores() {
-        const inGame = phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer";
+        const inGame = phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer" || phase === "input";
         if (!inGame) {
           sessionScoresEl.classList.add("hidden");
           sessionScoresEl.classList.remove("room-hud");
           return;
         }
-        if (roomCode) {
-          sessionScoresEl.textContent = roomHudText();
+        if (gameMode === "room" && roomCode) {
+          sessionScoresEl.textContent = "房间 " + roomCode;
+          sessionScoresEl.classList.add("room-hud");
+          sessionScoresEl.classList.remove("hidden");
+          return;
+        }
+        if (gameMode === "challenge") {
+          sessionScoresEl.textContent = "挑战";
           sessionScoresEl.classList.add("room-hud");
           sessionScoresEl.classList.remove("hidden");
           return;
@@ -2692,17 +3379,62 @@
       function setAnswerControls(on) {
         game.classList.toggle("answering", on);
         answerBar.classList.toggle("hidden", !on);
-        if (!on) {
-          soloRow.classList.add("hidden");
-          groupRow.classList.add("hidden");
-          nextBtn.classList.add("hidden");
+        typeRow.classList.add("hidden");
+        typeTimer.classList.add("hidden");
+        soloRow.classList.add("hidden");
+        groupRow.classList.add("hidden");
+        roomReveal.classList.add("hidden");
+        waitText.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+        replayBtn.classList.add("hidden");
+        if (!on) return;
+        const typing = usesTyping();
+        const roomMode = gameMode === "room";
+        const vis = roomMode ? visualRoomPhase() : "";
+        const mine = roomMode ? myRoomAnswer() : null;
+        const admin = roomMode && isRoomAdmin();
+        const multi = gameMode === "solo" && settingsState.playerCount >= 2;
+        if (roomMode && vis === "reveal") {
+          roomReveal.classList.remove("hidden");
+          renderRoomRevealList();
+          if (admin) {
+            replayBtn.classList.remove("hidden");
+            nextBtn.classList.remove("hidden");
+            nextBtn.textContent = "下一题";
+          }
           return;
         }
-        const multi = !roomCode && settingsState.playerCount >= 2;
-        soloRow.classList.toggle("hidden", multi);
-        groupRow.classList.toggle("hidden", !multi);
-        nextBtn.classList.toggle("hidden", !multi);
-        if (multi) rebuildGroups();
+        if (roomMode && mine && vis === "input") {
+          waitText.classList.remove("hidden");
+          roomReveal.classList.remove("hidden");
+          renderRoomRevealList();
+          return;
+        }
+        if (roomMode && vis === "input" && roomDoc && !roomDoc.antiCheat) {
+          soloRow.classList.remove("hidden");
+          return;
+        }
+        if (typing && (phase === "input" || phase === "speak")) {
+          typeRow.classList.remove("hidden");
+          updateInputTimer();
+          return;
+        }
+        if (phase === "answer" && (gameMode === "daily" || gameMode === "challenge")) {
+          replayBtn.classList.toggle("hidden", gameMode === "challenge");
+          nextBtn.classList.remove("hidden");
+          nextBtn.textContent = "下一轮";
+          return;
+        }
+        if (multi) {
+          groupRow.classList.remove("hidden");
+          nextBtn.classList.remove("hidden");
+          nextBtn.textContent = "下一轮";
+          replayBtn.classList.remove("hidden");
+          rebuildGroups();
+          return;
+        }
+        soloRow.classList.remove("hidden");
+        replayBtn.classList.remove("hidden");
       }
 
       function rebuildGroups() {
@@ -2800,7 +3532,7 @@
         phase = "flash";
         hideBestBanner();
         setAnswerControls(false);
-        if (!keep) lastNumber = randomNumber();
+        if (gameMode === "challenge" || !keep) lastNumber = randomNumber();
         flashText.classList.remove("answer");
         flashText.textContent = lastNumber;
         showOnly(flashText);
@@ -2809,8 +3541,9 @@
         vibrate();
         flashTimer = setTimeout(() => {
           flashTimer = null;
-          enterSpeak();
-        }, settingsState.flashMs);
+          if (usesTyping()) enterInput();
+          else enterSpeak();
+        }, activeFlashMs());
       }
 
       function enterSpeak() {
@@ -2833,6 +3566,11 @@
       }
 
       function recordSolo(ok) {
+        if (gameMode === "room") {
+          if (visualRoomPhase() === "reveal") return;
+          submitRoomAnswer(ok ? lastNumber : "", !!ok);
+          return;
+        }
         if (phase !== "answer") return;
         if (currentSession) {
           currentSession.rounds += 1;
@@ -2841,12 +3579,6 @@
         }
         const playerCount = currentSession ? currentSession.playerCount : settingsState.playerCount;
         if (ok && playerCount === 1) considerBest();
-        if (roomCode) {
-          if (ok) roomCorrect += 1;
-          else roomWrong += 1;
-          publishPresence();
-        }
-        bumpDaily(ok);
         enterReady(false);
       }
 
@@ -2869,6 +3601,7 @@
         setAnswerControls(false);
         hideBestBanner();
         phase = "home";
+        if (gameMode !== "room") gameMode = "solo";
         showScreen(home);
         readyText.classList.add("hidden");
         flashText.classList.add("hidden");
@@ -2879,14 +3612,33 @@
       }
 
       function leaveGame() {
+        const mode = gameMode;
         finalizeSession();
-        if (roomCode) goRoomLobby();
-        else goHome();
+        if (roomCode) {
+          roomStayLobby = true;
+          goRoomLobby();
+        } else if (mode === "challenge") {
+          gameMode = "solo";
+          openChallenge();
+        } else {
+          gameMode = "solo";
+          goHome();
+        }
       }
 
-      function startGame() {
+      function startGame(mode) {
+        gameMode = mode || (settingsState.joinDaily ? "daily" : "solo");
+        if (gameMode === "daily") {
+          const why = dailyJoinBlockReason();
+          if (why) {
+            if (!globalName) openDaily();
+            else { phase = "settings"; showScreen(settings); }
+            return;
+          }
+        }
         sessionScores = emptyGroups();
         hideBestBanner();
+        typedLocked = false;
         beginSession();
         showScreen(game);
         enterReady(false);
@@ -2894,7 +3646,13 @@
 
       startBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        startGame();
+        const why = dailyJoinBlockReason();
+        if (why) {
+          if (!globalName) openDaily();
+          else { phase = "settings"; showScreen(settings); }
+          return;
+        }
+        startGame(settingsState.joinDaily ? "daily" : "solo");
       });
 
       settingsBtn.addEventListener("click", (e) => {
@@ -2940,10 +3698,6 @@
       roomBack.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!roomCode) {
-          mqttWanted = false;
-          disconnectMqtt();
-        }
         goHome();
       });
 
@@ -2963,7 +3717,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (!roomCode) return;
-        startGame();
+        startRoomRound(false);
       });
 
       roomLeave.addEventListener("click", (e) => {
@@ -3062,14 +3816,18 @@
       });
 
       flashRange.addEventListener("input", () => {
-        settingsState.flashMs = clampMs(flashRange.value);
+        let ms = clampMs(flashRange.value);
+        if (settingsState.joinDaily && ms > 150) ms = 150;
+        settingsState.flashMs = ms;
         saveSettings();
       });
 
       document.getElementById("flashPresets").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-ms]");
         if (!btn) return;
-        settingsState.flashMs = clampMs(btn.dataset.ms);
+        let ms = clampMs(btn.dataset.ms);
+        if (settingsState.joinDaily && ms > 150) ms = 150;
+        settingsState.flashMs = ms;
         saveSettings();
       });
 
@@ -3086,13 +3844,17 @@
       });
 
       digitRange.addEventListener("input", () => {
-        settingsState.digits = normalizeDigits(digitRange.value);
+        let d = normalizeDigits(digitRange.value);
+        if (settingsState.joinDaily && d !== "mix" && d < 6) d = 6;
+        settingsState.digits = d;
         saveSettings();
       });
 
       mixMinRange.addEventListener("input", () => {
         settingsState.digits = "mix";
-        const mix = normalizeMix(mixMinRange.value, settingsState.mixMax);
+        let minV = mixMinRange.value;
+        if (settingsState.joinDaily && Number(minV) < 6) minV = 6;
+        const mix = normalizeMix(minV, settingsState.mixMax);
         settingsState.mixMin = mix.min;
         settingsState.mixMax = mix.max;
         saveSettings();
@@ -3109,9 +3871,11 @@
       document.getElementById("digitChips").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-digits]");
         if (!btn) return;
-        settingsState.digits = normalizeDigits(btn.dataset.digits);
+        let d = normalizeDigits(btn.dataset.digits);
+        if (settingsState.joinDaily && d !== "mix" && d < 6) d = 6;
+        settingsState.digits = d;
         if (settingsState.digits === "mix") {
-          const mix = normalizeMix(settingsState.mixMin, settingsState.mixMax);
+          const mix = normalizeMix(settingsState.joinDaily ? Math.max(6, settingsState.mixMin) : settingsState.mixMin, settingsState.mixMax);
           settingsState.mixMin = mix.min;
           settingsState.mixMax = mix.max;
         }
@@ -3125,7 +3889,19 @@
         saveSettings();
       });
 
-      [exitBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar].forEach(bindStop);
+      [exitBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
+      typeInput.addEventListener("pointerdown", stopBubble);
+      typeInput.addEventListener("click", stopBubble);
+      typeInput.addEventListener("input", () => {
+        typeInput.value = typeInput.value.replace(/\D/g, "");
+        if (phase !== "input" || typedLocked) return;
+        const need = (lastNumber || "").length;
+        if (need && typeInput.value.length === need) submitTyped();
+      });
+      typeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); submitTyped(); }
+      });
+      typeSubmit.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); submitTyped(); });
 
       exitBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -3136,8 +3912,13 @@
       replayBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (gameMode === "room") {
+          if (visualRoomPhase() !== "reveal" || !isRoomAdmin()) return;
+          startRoomRound(true);
+          return;
+        }
         if (phase !== "answer") return;
-        enterReady(true);
+        enterReady(gameMode !== "challenge");
       });
 
       yesBtn.addEventListener("click", (e) => {
@@ -3155,6 +3936,16 @@
       nextBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (gameMode === "room") {
+          if (!isRoomAdmin()) return;
+          startRoomRound(false);
+          return;
+        }
+        if (gameMode === "daily" || gameMode === "challenge" || usesTyping()) {
+          if (phase !== "answer") return;
+          enterReady(false);
+          return;
+        }
         commitMulti();
       });
 
@@ -3167,7 +3958,7 @@
       });
 
       game.addEventListener("pointerup", (e) => {
-        if (e.target.closest("#exitBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores")) return;
+        if (e.target.closest("#exitBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores, #typeRow, #typeInput, #typeSubmit")) return;
         if (phase === "speak") enterAnswer();
       });
 
@@ -3179,9 +3970,9 @@
             return;
           }
           if (phase === "home") return;
-          if (phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer") {
+          if (phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer" || phase === "input") {
             leaveGame();
-          } else if (phase === "daily") {
+          } else if (phase === "daily" || phase === "challenge") {
             goHome();
           } else if (phase === "recordDetail") {
             viewingId = null;
@@ -3196,7 +3987,7 @@
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
         if (phase === "answer") {
-          const multi = !roomCode && settingsState.playerCount >= 2;
+          const multi = gameMode === "solo" && settingsState.playerCount >= 2;
           if (multi && e.key >= "1" && e.key <= "7") {
             e.preventDefault();
             toggleGroup(Number(e.key) - 1);
@@ -3205,6 +3996,7 @@
           if (e.key === "y" || e.key === "Y" || e.key === "Enter") {
             e.preventDefault();
             if (multi) commitMulti();
+            else if (gameMode === "daily" || gameMode === "challenge") enterReady(false);
             else recordSolo(true);
             return;
           }
@@ -3224,6 +4016,75 @@
         } else if (phase === "speak") {
           enterAnswer();
         }
+      });
+
+      document.getElementById("joinDailyChips").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-join]");
+        if (!btn) return;
+        setJoinDaily(btn.dataset.join === "1");
+      });
+      document.getElementById("dailyJoinChips").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-join]");
+        if (!btn) return;
+        setJoinDaily(btn.dataset.join === "1");
+      });
+      challengeBtn.addEventListener("click", (e) => { e.stopPropagation(); openChallenge(); });
+      challengeBack.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); goHome(); });
+      challengePlay.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!challengeState) { refreshChallenge(); return; }
+        startGame("challenge");
+      });
+      challengeUpdateBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const open = challengeEditBox.classList.contains("hidden");
+        challengeEditBox.classList.toggle("hidden");
+        if (open && challengeState) {
+          challengeFlashRange.value = String(challengeState.flashMs);
+          challengeDigitRange.value = String(challengeState.digits);
+          renderChallenge();
+        }
+      });
+      challengeFlashRange.addEventListener("input", renderChallenge);
+      challengeDigitRange.addEventListener("input", renderChallenge);
+      challengeSave.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); saveChallengeConfig(); });
+      roomResume.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        roomStayLobby = false;
+        enterRoomPlay();
+      });
+      roomFlashRange.addEventListener("input", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        roomFlashLabel.textContent = formatFlashCompact(clampMs(roomFlashRange.value));
+      });
+      roomFlashRange.addEventListener("change", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        patchRoomDoc({ flashMs: clampMs(roomFlashRange.value) }, ["flashMs"]);
+      });
+      roomDigitRange.addEventListener("input", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        roomDigitLabel.textContent = clampDigit(roomDigitRange.value, 5) + " 位";
+      });
+      roomDigitRange.addEventListener("change", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        patchRoomDoc({ digits: clampDigit(roomDigitRange.value, 5) }, ["digits"]);
+      });
+      roomAntiCheatBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isRoomAdmin() || !roomDoc) return;
+        patchRoomDoc({ antiCheat: !roomDoc.antiCheat }, ["antiCheat"]).then(function () { renderRoomLobby(); });
+      });
+      roomAnswerSecRange.addEventListener("input", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        roomAnswerSecLabel.textContent = clampAnswerSec(roomAnswerSecRange.value) + " 秒";
+      });
+      roomAnswerSecRange.addEventListener("change", () => {
+        if (!isRoomAdmin() || !roomDoc) return;
+        patchRoomDoc({ answerSeconds: clampAnswerSec(roomAnswerSecRange.value) }, ["answerSeconds"]);
       });
 
       renderSettings();
