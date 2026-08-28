@@ -1192,7 +1192,7 @@
         <p class="guide-h">日榜</p>
         <p class="guide-p">每天 0 点重置。必须单人、打字作答，闪现不超过 0.15 秒、至少 6 位。重玩不计分，只有下一轮才算。</p>
         <p class="guide-h">挑战</p>
-        <p class="guide-p">全服同一道题。第一次要取名字和口令。答对当前挑战后，才能改难度。</p>
+        <p class="guide-p">全服同一道题。第一次要取名字和口令。答对当前挑战后，才能改难度。保存前需按新设置连对 2 次。</p>
         <p class="guide-h">房间</p>
         <p class="guide-p">用房间号跟同学一起玩。房主可以改难度。</p>
         <p class="guide-h">账号</p>
@@ -1367,6 +1367,7 @@
               <input type="range" id="challengeDigitRange" min="1" max="15" step="1" value="4">
             </div>
             <button type="button" class="start-btn" id="challengeSave">保存</button>
+            <p class="challenge-muted" id="challengeSaveHint">保存前需按新设置连对 2 次</p>
           </div>
         </div>
       </div>
@@ -1552,6 +1553,7 @@
       let typedLocked = false;
       let challengeState = null;
       let challengeHasBeat = false;
+      let challengePending = null;
       let roomDoc = null;
       let roomMembers = [];
       let roomAnswers = [];
@@ -1912,7 +1914,7 @@
           playerCount: n,
           settings: {
             flashMs: activeFlashMs(),
-            digits: (gameMode === "challenge" && challengeState) ? challengeState.digits
+            digits: (gameMode === "challenge") ? challengePlayConfig().digits
               : (gameMode === "room" && roomDoc) ? roomDoc.digits
               : settingsState.digits,
             mixMin: settingsState.mixMin,
@@ -3139,8 +3141,13 @@
         if (gameMode === "room" && roomDoc && roomDoc.antiCheat) return true;
         return false;
       }
+      function challengePlayConfig() {
+        if (challengePending) return { flashMs: challengePending.flashMs, digits: challengePending.digits };
+        if (challengeState) return { flashMs: challengeState.flashMs, digits: challengeState.digits };
+        return { flashMs: 150, digits: 4 };
+      }
       function activeFlashMs() {
-        if (gameMode === "challenge" && challengeState) return challengeState.flashMs;
+        if (gameMode === "challenge") return challengePlayConfig().flashMs;
         if (gameMode === "room" && roomDoc) return roomDoc.flashMs;
         return settingsState.flashMs;
       }
@@ -3244,6 +3251,9 @@
         }
       }
       function openChallenge() {
+        if (phase !== "ready" && phase !== "flash" && phase !== "speak" && phase !== "answer" && phase !== "input") {
+          challengePending = null;
+        }
         phase = "challenge";
         showScreen(challenge);
         renderChallengeGate();
@@ -3317,23 +3327,35 @@
           renderChallenge();
         } catch (_) {}
       }
-      async function saveChallengeConfig() {
-        if (!challengeHasBeat || !challengeState) return;
+      async function commitPendingChallenge() {
+        if (!challengePending || !globalName) return false;
         const next = {
-          flashMs: clampMs(challengeFlashRange.value),
-          digits: clampDigit(Number(challengeDigitRange.value), 4),
+          flashMs: challengePending.flashMs,
+          digits: challengePending.digits,
           holderId: fbLocalId,
-          holderName: globalName || challengeState.holderName || "玩家",
+          holderName: globalName,
           heldSince: Date.now()
         };
-        try {
-          const res = await fbPatch("challenge/current", challengeFields(next), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
-          if (!res.ok) throw new Error("net");
-          challengeState = next;
-          challengeEditBox.classList.add("hidden");
-          challengeError.classList.add("hidden");
-          renderChallenge();
-        } catch (_) { challengeError.classList.remove("hidden"); }
+        await ensureFbAuth();
+        const res = await fbPatch("challenge/current", challengeFields(next), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
+        if (!res.ok) throw new Error("net");
+        challengeState = next;
+        challengePending = null;
+        challengeHasBeat = true;
+        challengeError.classList.add("hidden");
+        playSfx("win");
+        return true;
+      }
+      function saveChallengeConfig() {
+        if (!challengeHasBeat || !challengeState || !globalName) return;
+        challengePending = {
+          flashMs: clampMs(challengeFlashRange.value),
+          digits: clampDigit(Number(challengeDigitRange.value), 4),
+          streak: 0
+        };
+        challengeEditBox.classList.add("hidden");
+        challengeError.classList.add("hidden");
+        startGame("challenge");
       }
 
       function showRoomError(on) {
@@ -3900,7 +3922,21 @@
         }
         const madeBest = countThis && ok ? considerBest() : false;
         if (countThis && gameMode === "daily") bumpDaily(ok);
-        if (countThis && gameMode === "challenge" && ok) onChallengeBeat();
+        if (gameMode === "challenge" && challengePending) {
+          if (countThis) {
+            if (ok) challengePending.streak += 1;
+            else challengePending.streak = 0;
+          }
+          if (challengePending.streak >= 2) {
+            commitPendingChallenge().then(function () {
+              renderSessionScores();
+            }).catch(function () {
+              challengeError.classList.remove("hidden");
+            });
+          }
+        } else if (countThis && gameMode === "challenge" && ok) {
+          onChallengeBeat();
+        }
         phase = "answer";
         stopTicks();
         flashText.classList.add("answer");
@@ -4153,7 +4189,7 @@
 
       function randomNumber() {
         let digits = settingsState.digits;
-        if (gameMode === "challenge" && challengeState) digits = challengeState.digits;
+        if (gameMode === "challenge") digits = challengePlayConfig().digits;
         if (gameMode === "room" && roomDoc) digits = clampDigit(roomDoc.digits, 5);
         if (digits === "mix") {
           const span = settingsState.mixMax - settingsState.mixMin + 1;
@@ -4189,7 +4225,9 @@
           return;
         }
         if (gameMode === "challenge") {
-          sessionScoresEl.textContent = "挑战";
+          sessionScoresEl.textContent = challengePending
+            ? ("保存 " + challengePending.streak + "/2")
+            : "挑战";
           sessionScoresEl.classList.add("room-hud");
           sessionScoresEl.classList.remove("hidden");
           return;
@@ -4459,6 +4497,7 @@
 
       function leaveGame() {
         const mode = gameMode;
+        if (mode === "challenge") challengePending = null;
         finalizeSession();
         if (roomCode) {
           roomStayLobby = true;
