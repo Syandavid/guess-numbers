@@ -146,7 +146,7 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
-      #challenge .settings-title, .challenge-box, .challenge-line { width: min(100%, 520px); }
+      #challenge .settings-title, .challenge-box, .challenge-line, #challenge .daily-name-box { width: min(100%, 520px); }
       .type-row { max-width: none; width: min(100%, 360px); }
       .type-input { font-size: 20px; padding: 8px 12px; }
       .type-submit { font-size: 16px; padding: 8px 14px; }
@@ -1236,6 +1236,13 @@
       <button type="button" class="exit-btn" id="challengeBack">返回</button>
       <h2 class="settings-title">挑战</h2>
       <p id="challengeError" class="room-error hidden">连不上</p>
+      <div id="challengeNameBox" class="daily-name-box hidden">
+        <input class="room-input" id="challengeNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="challengePinInput" type="text" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button type="button" class="start-btn" id="challengeNameOk">确定</button>
+        <p class="daily-sub" id="challengePinHint">口令用来取回这个名字，请自己记住</p>
+        <p id="challengeNameErr" class="room-error hidden"></p>
+      </div>
       <div id="challengeBox" class="challenge-box">
         <p class="challenge-line" id="challengeConfig"></p>
         <p class="challenge-line" id="challengeHolder"></p>
@@ -1370,6 +1377,12 @@
       const challengeBtn = document.getElementById("challengeBtn");
       const challengeBack = document.getElementById("challengeBack");
       const challengeError = document.getElementById("challengeError");
+      const challengeNameBox = document.getElementById("challengeNameBox");
+      const challengeNameInput = document.getElementById("challengeNameInput");
+      const challengePinInput = document.getElementById("challengePinInput");
+      const challengeNameOk = document.getElementById("challengeNameOk");
+      const challengeNameErr = document.getElementById("challengeNameErr");
+      const challengeBox = document.getElementById("challengeBox");
       const challengeConfig = document.getElementById("challengeConfig");
       const challengeHolder = document.getElementById("challengeHolder");
       const challengeHeld = document.getElementById("challengeHeld");
@@ -2683,15 +2696,82 @@
           renderChallenge();
         } catch (_) { challengeError.classList.remove("hidden"); }
       }
+      function showChallengeNameErr(msg) {
+        if (!msg) {
+          challengeNameErr.textContent = "";
+          challengeNameErr.classList.add("hidden");
+          return;
+        }
+        challengeNameErr.textContent = msg;
+        challengeNameErr.classList.remove("hidden");
+      }
+      function renderChallengeGate() {
+        if (!globalName) {
+          challengeNameBox.classList.remove("hidden");
+          challengeBox.classList.add("hidden");
+          challengeError.classList.add("hidden");
+          showChallengeNameErr("");
+        } else {
+          challengeNameBox.classList.add("hidden");
+          challengeBox.classList.remove("hidden");
+        }
+      }
       function openChallenge() {
         phase = "challenge";
         showScreen(challenge);
+        renderChallengeGate();
+        if (!globalName) return;
         renderChallenge();
         refreshChallenge();
         ensurePoll();
       }
+      async function submitChallengeName() {
+        if (dailyNameBusy || globalName) return;
+        const name = normalizeGlobalName(challengeNameInput.value);
+        if (!name) {
+          showChallengeNameErr("请输入2–8个字，中文、字母或数字");
+          return;
+        }
+        const pin = normalizePin(challengePinInput.value);
+        if (!pin) {
+          showChallengeNameErr("请设4–8位口令，字母或数字");
+          return;
+        }
+        dailyNameBusy = true;
+        showChallengeNameErr("");
+        challengeError.classList.add("hidden");
+        try {
+          await ensureFbAuth();
+          let result = await claimUsername(name);
+          if (result === "ok") {
+            await createNameLock(name, pin);
+          } else if (result === "taken") {
+            result = await reclaimUsername(name, pin);
+            if (result === "badpin") {
+              showChallengeNameErr("口令不对");
+              return;
+            }
+            if (result === "nopin") {
+              showChallengeNameErr("这个名字已经有人用了");
+              return;
+            }
+          }
+          saveGlobalName(name);
+          renderHomeDaily();
+          renderDailyShell();
+          renderChallengeGate();
+          renderChallenge();
+          refreshChallenge();
+          ensurePoll();
+        } catch (_) {
+          challengeError.classList.remove("hidden");
+        } finally {
+          dailyNameBusy = false;
+        }
+      }
       async function onChallengeBeat() {
-        const name = globalName || roomDisplayName || loadName() || "玩家";
+        if (!globalName) return;
+        const name = globalName;
         try {
           await ensureFbAuth();
           await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), { t: fsInt(Date.now()), name: fsStr(name) }, ["t", "name"]);
@@ -3888,6 +3968,10 @@
             return;
           }
         }
+        if (gameMode === "challenge" && !globalName) {
+          openChallenge();
+          return;
+        }
         sessionScores = emptyGroups();
         hideBestBanner();
         typedLocked = false;
@@ -4314,9 +4398,15 @@
       });
       challengeBtn.addEventListener("click", (e) => { e.stopPropagation(); openChallenge(); });
       challengeBack.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); goHome(); });
+      challengeNameOk.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        submitChallengeName();
+      });
       challengePlay.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!globalName) { renderChallengeGate(); return; }
         if (!challengeState) { refreshChallenge(); return; }
         startGame("challenge");
       });
