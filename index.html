@@ -1042,7 +1042,7 @@
         </div>
         <input type="range" id="mixMaxRange" min="1" max="15" step="1" value="10">
       </div>
-      <div class="setting">
+      <div class="setting" id="playerSetting">
         <div class="setting-label">
           <span>人数</span>
           <span class="setting-value" id="playerLabel">单人</span>
@@ -1073,6 +1073,7 @@
 
     <section id="game" class="screen" aria-label="游戏">
       <button type="button" class="exit-btn" id="exitBtn">退出</button>
+      <button type="button" class="exit-btn right" id="gameDailyBtn">日榜</button>
       <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
       <div id="bestBanner" class="best-banner hidden" aria-hidden="true">新纪录</div>
       <div class="stage">
@@ -1208,6 +1209,7 @@
           </div>
         </div>
         <p class="daily-you" id="dailyYou"></p>
+        <button type="button" class="start-btn" id="dailyPlay">开始</button>
         <div id="dailyList" class="room-board"></div>
         <p id="dailyTotal" class="room-count hidden"></p>
       </div>
@@ -1265,6 +1267,7 @@
       const settingsBtn = document.getElementById("settingsBtn");
       const settingsBack = document.getElementById("settingsBack");
       const exitBtn = document.getElementById("exitBtn");
+      const gameDailyBtn = document.getElementById("gameDailyBtn");
       const readyText = document.getElementById("readyText");
       const flashText = document.getElementById("flashText");
       const speakText = document.getElementById("speakText");
@@ -1337,6 +1340,7 @@
       const dailyNameBox = document.getElementById("dailyNameBox");
       const dailyNameInput = document.getElementById("dailyNameInput");
       const dailyNameOk = document.getElementById("dailyNameOk");
+      const dailyPlay = document.getElementById("dailyPlay");
       const dailyNameErr = document.getElementById("dailyNameErr");
       const dailyBoardBox = document.getElementById("dailyBoardBox");
       const dailyYou = document.getElementById("dailyYou");
@@ -1408,6 +1412,7 @@
       let roomViewPhase = "";
       let roomPollFail = 0;
       let lastNumber = "";
+      let roundIsReplay = false;
       let sessionScores = [0, 0, 0, 0, 0, 0, 0];
       let groupSelected = [];
 
@@ -1895,8 +1900,9 @@
         playerLabel.textContent = playerCountLabel();
         joinDailyLabel.textContent = settingsState.joinDaily ? "开" : "关";
         joinDailyHint.textContent = settingsState.joinDaily
-          ? (globalName ? "打字作答 · 闪现 ≤ 0.15 秒 · 至少 6 位" : "先去日榜取名")
+          ? (globalName ? "单人 · 打字作答 · 闪现 ≤ 0.15 秒 · 至少 6 位" : "先去日榜取名")
           : "";
+        document.getElementById("playerSetting").classList.toggle("hidden", settingsState.joinDaily);
         const jOn = settingsState.joinDaily;
         document.getElementById("joinDailyOn").classList.toggle("active", jOn);
         document.getElementById("joinDailyOff").classList.toggle("active", !jOn);
@@ -2495,6 +2501,7 @@
       }
       function clampDailyJoinSettings() {
         if (!settingsState.joinDaily) return;
+        settingsState.playerCount = 1;
         if (settingsState.flashMs > 150) settingsState.flashMs = 150;
         if (settingsState.digits === "mix") {
           if (settingsState.mixMin < 6) settingsState.mixMin = 6;
@@ -2504,6 +2511,7 @@
       function dailyJoinBlockReason() {
         if (!settingsState.joinDaily) return "";
         if (!globalName) return "参加日榜需要先取名";
+        if (settingsState.playerCount > 1) return "日榜只能单人";
         if (settingsState.flashMs > 150) return "日榜要求闪现 ≤ 0.15 秒";
         if (settingsState.digits === "mix") {
           if (settingsState.mixMin < 6) return "日榜随机最少 6 位";
@@ -2917,6 +2925,7 @@
       function enterRoomPlay() {
         gameMode = "room";
         roomStayLobby = false;
+        gameDailyBtn.classList.add("hidden");
         if (!currentSession) beginSession();
         showScreen(game);
         syncRoomPlay(visualRoomPhase());
@@ -3205,14 +3214,15 @@
         focusType();
       }
       function enterTypedReveal(ok) {
-        if (currentSession) {
+        const countThis = !roundIsReplay;
+        if (countThis && currentSession) {
           currentSession.rounds += 1;
           if (ok) currentSession.correct += 1;
           else currentSession.wrong += 1;
         }
-        if (ok) considerBest();
-        if (gameMode === "daily") bumpDaily(ok);
-        if (gameMode === "challenge" && ok) onChallengeBeat();
+        if (countThis && ok) considerBest();
+        if (countThis && gameMode === "daily") bumpDaily(ok);
+        if (countThis && gameMode === "challenge" && ok) onChallengeBeat();
         phase = "answer";
         flashText.classList.add("answer");
         flashText.textContent = lastNumber;
@@ -3515,6 +3525,7 @@
       }
 
       function enterReady(keep) {
+        roundIsReplay = !!keep;
         clearTimers();
         setAnswerControls(false);
         phase = "ready";
@@ -3619,6 +3630,9 @@
         } else if (mode === "challenge") {
           gameMode = "solo";
           openChallenge();
+        } else if (mode === "daily") {
+          gameMode = "solo";
+          openDaily();
         } else {
           gameMode = "solo";
           goHome();
@@ -3628,6 +3642,10 @@
       function startGame(mode) {
         gameMode = mode || (settingsState.joinDaily ? "daily" : "solo");
         if (gameMode === "daily") {
+          settingsState.joinDaily = true;
+          clampDailyJoinSettings();
+          saveSettings();
+          renderSettings();
           const why = dailyJoinBlockReason();
           if (why) {
             if (!globalName) openDaily();
@@ -3638,19 +3656,26 @@
         sessionScores = emptyGroups();
         hideBestBanner();
         typedLocked = false;
+        roundIsReplay = false;
+        gameDailyBtn.classList.toggle("hidden", gameMode === "room" || gameMode === "daily");
         beginSession();
         showScreen(game);
         enterReady(false);
       }
 
+      function enterDailyPlay() {
+        settingsState.joinDaily = true;
+        clampDailyJoinSettings();
+        saveSettings();
+        renderSettings();
+        if (!globalName) { openDaily(); return; }
+        const why = dailyJoinBlockReason();
+        if (why) { phase = "settings"; showScreen(settings); return; }
+        startGame("daily");
+      }
+
       startBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const why = dailyJoinBlockReason();
-        if (why) {
-          if (!globalName) openDaily();
-          else { phase = "settings"; showScreen(settings); }
-          return;
-        }
         startGame(settingsState.joinDaily ? "daily" : "solo");
       });
 
@@ -3675,6 +3700,12 @@
         e.preventDefault();
         e.stopPropagation();
         submitDailyName();
+      });
+
+      dailyPlay.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        enterDailyPlay();
       });
 
       dailyNameInput.addEventListener("keydown", (e) => {
@@ -3884,11 +3915,12 @@
       document.getElementById("playerChips").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-players]");
         if (!btn) return;
+        if (settingsState.joinDaily) return;
         settingsState.playerCount = clampPlayers(btn.dataset.players);
         saveSettings();
       });
 
-      [exitBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
+      [exitBtn, gameDailyBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
       typeInput.addEventListener("pointerdown", stopBubble);
       typeInput.addEventListener("click", stopBubble);
       typeInput.addEventListener("input", () => {
@@ -3906,6 +3938,14 @@
         e.preventDefault();
         e.stopPropagation();
         leaveGame();
+      });
+
+      gameDailyBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (gameMode === "room" || gameMode === "daily") return;
+        finalizeSession();
+        enterDailyPlay();
       });
 
       replayBtn.addEventListener("click", (e) => {
@@ -3957,7 +3997,7 @@
       });
 
       game.addEventListener("pointerup", (e) => {
-        if (e.target.closest("#exitBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores, #typeRow, #typeInput, #typeSubmit")) return;
+        if (e.target.closest("#exitBtn, #gameDailyBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores, #typeRow, #typeInput, #typeSubmit")) return;
         if (phase === "speak") enterAnswer();
       });
 
