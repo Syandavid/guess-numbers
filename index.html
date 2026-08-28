@@ -1178,6 +1178,7 @@
         <div class="action-row">
           <button type="button" class="replay-btn" id="replayBtn">重玩</button>
           <button type="button" class="replay-btn" id="nextBtn">下一轮</button>
+          <button type="button" class="replay-btn hidden" id="challengeTuneBtn">更新挑战</button>
         </div>
       </div>
     </section>
@@ -1399,6 +1400,7 @@
       const speakText = document.getElementById("speakText");
       const replayBtn = document.getElementById("replayBtn");
       const nextBtn = document.getElementById("nextBtn");
+      const challengeTuneBtn = document.getElementById("challengeTuneBtn");
       const yesBtn = document.getElementById("yesBtn");
       const noBtn = document.getElementById("noBtn");
       const answerBar = document.getElementById("answerBar");
@@ -3197,11 +3199,12 @@
         challengeDigitLabel.textContent = challengeDigitRange.value + " 位";
       }
       async function fetchOwnBeat() {
-        if (!fbLocalId) { challengeHasBeat = false; return; }
+        if (!fbLocalId) return;
         try {
           const res = await fbGet("challenge/beats/" + encodeURIComponent(fbLocalId));
-          challengeHasBeat = res.ok;
-        } catch (_) { challengeHasBeat = false; }
+          if (res.ok) challengeHasBeat = true;
+          else if (res.status === 404) challengeHasBeat = false;
+        } catch (_) {}
       }
       async function seedChallenge() {
         const st = { flashMs: 150, digits: 4, holderId: "", holderName: "系统", heldSince: Date.now() };
@@ -3935,6 +3938,7 @@
             });
           }
         } else if (countThis && gameMode === "challenge" && ok) {
+          challengeHasBeat = true;
           onChallengeBeat();
         }
         phase = "answer";
@@ -4259,6 +4263,7 @@
         waitText.classList.add("hidden");
         nextBtn.classList.add("hidden");
         replayBtn.classList.add("hidden");
+        challengeTuneBtn.classList.add("hidden");
         if (!on) return;
         const typing = usesTyping();
         const roomMode = gameMode === "room";
@@ -4295,6 +4300,7 @@
           replayBtn.classList.toggle("hidden", gameMode === "challenge");
           nextBtn.classList.remove("hidden");
           nextBtn.textContent = "下一轮";
+          if (gameMode === "challenge" && challengeHasBeat) challengeTuneBtn.classList.remove("hidden");
           return;
         }
         if (multi) {
@@ -4495,6 +4501,21 @@
         renderHomeHint();
       }
 
+      function openChallengeEditor() {
+        challengePending = null;
+        finalizeSession();
+        gameMode = "solo";
+        openChallenge();
+        if (challengeHasBeat) {
+          challengeEdit.classList.remove("hidden");
+          challengeEditBox.classList.remove("hidden");
+          if (challengeState) {
+            challengeFlashRange.value = String(challengeState.flashMs);
+            challengeDigitRange.value = String(challengeState.digits);
+          }
+          renderChallenge();
+        }
+      }
       function leaveGame() {
         const mode = gameMode;
         if (mode === "challenge") challengePending = null;
@@ -4872,7 +4893,7 @@
         saveSettings();
       });
 
-      [exitBtn, gameDailyBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
+      [exitBtn, gameDailyBtn, replayBtn, nextBtn, challengeTuneBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
       typeInput.addEventListener("pointerdown", stopBubble);
       typeInput.addEventListener("click", stopBubble);
       typeInput.addEventListener("input", () => {
@@ -4924,6 +4945,12 @@
         recordSolo(false);
       });
 
+      challengeTuneBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (gameMode !== "challenge" || phase !== "answer") return;
+        openChallengeEditor();
+      });
       nextBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -4949,7 +4976,7 @@
       });
 
       game.addEventListener("pointerup", (e) => {
-        if (e.target.closest("#exitBtn, #gameDailyBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores, #typeRow, #typeInput, #typeSubmit")) return;
+        if (e.target.closest("#exitBtn, #gameDailyBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #challengeTuneBtn, #groupRow, #sessionScores, #typeRow, #typeInput, #typeSubmit")) return;
         if (phase === "speak") enterAnswer();
       });
 
