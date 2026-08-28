@@ -69,7 +69,7 @@
         font-size: clamp(26px, 11vh, 40px);
       }
       #home {
-        padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
         padding-left: calc(env(safe-area-inset-left, 0px) + 16px);
         padding-right: calc(env(safe-area-inset-right, 0px) + 16px);
@@ -100,11 +100,10 @@
       .replay-btn { font-size: 16px; padding: 8px 18px; }
       .phase-text { font-size: clamp(40px, 16vh, 72px); }
       .home-actions {
-        width: min(100%, 560px);
-        grid-template-columns: 1fr 1fr 1fr;
+        width: min(100%, 480px);
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
       }
-      .home-actions > #challengeBtn { grid-column: auto; }
       .start-btn, .ghost-btn { font-size: 16px; padding: 8px 12px; }
       #room {
         padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
@@ -123,6 +122,14 @@
       .room-lobby-actions .start-btn,
       .room-lobby-actions .ghost-btn { font-size: 18px; padding: 10px 16px; }
       .room-join-row .ghost-btn { font-size: 16px; padding: 8px 16px; }
+      #guide {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        gap: 8px;
+      }
+      .guide-box, #guide .start-btn { width: min(100%, 520px); }
+      .guide-p { font-size: 14px; }
+      .guide-h { font-size: 15px; margin-top: 4px; }
       #daily {
         padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -179,7 +186,7 @@
     .screen.active { display: flex; }
 
     #home {
-      padding: calc(env(safe-area-inset-top, 0px) + 24px) 32px calc(env(safe-area-inset-bottom, 0px) + 40px);
+      padding: calc(env(safe-area-inset-top, 0px) + 52px) 32px calc(env(safe-area-inset-bottom, 0px) + 40px);
       justify-content: space-between;
       align-items: center;
     }
@@ -233,10 +240,10 @@
       gap: 12px;
     }
     .home-actions > .start-btn,
-    .home-actions > #homeBlock,
-    .home-actions > #challengeBtn {
+    .home-actions > #homeBlock {
       grid-column: 1 / -1;
     }
+    #guideBtn { letter-spacing: 0.04em; }
 
     .start-btn, .ghost-btn {
       appearance: none;
@@ -636,11 +643,35 @@
     }
     .exit-btn.danger { color: #f87171; }
 
-    #records, #recordDetail {
+    #records, #recordDetail, #guide {
       padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
+    #guide {
+      align-items: center;
+      gap: 12px;
+    }
+    .guide-box {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .guide-h {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+    }
+    .guide-p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      letter-spacing: 0.04em;
+    }
+    #guide .start-btn { width: min(100%, 320px); margin-top: 8px; }
 
     .records-empty {
       color: var(--muted);
@@ -978,6 +1009,8 @@
 <body>
   <div id="app">
     <section id="home" class="screen active" aria-label="首页">
+      <button type="button" class="exit-btn" id="settingsBtn">难度</button>
+      <button type="button" class="exit-btn right" id="recordsBtn">记录</button>
       <div class="home-spacer"></div>
       <h1 class="title">猜数字</h1>
       <p class="home-hint" id="homeHint"></p>
@@ -988,14 +1021,13 @@
         <button type="button" class="start-btn" id="startBtn">开始</button>
         <p class="home-block hidden" id="homeBlock"></p>
         <div class="home-pair">
-          <button type="button" class="ghost-btn" id="settingsBtn">难度</button>
           <button type="button" class="ghost-btn" id="dailyBtn">日榜</button>
+          <button type="button" class="ghost-btn" id="challengeBtn">挑战</button>
         </div>
         <div class="home-pair">
-          <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
+          <button type="button" class="ghost-btn" id="guideBtn">玩家必读</button>
           <button type="button" class="ghost-btn" id="roomBtn">房间</button>
         </div>
-        <button type="button" class="ghost-btn" id="challengeBtn">挑战</button>
       </div>
     </section>
 
@@ -1114,6 +1146,25 @@
           <button type="button" class="replay-btn" id="nextBtn">下一轮</button>
         </div>
       </div>
+    </section>
+
+    <section id="guide" class="screen" aria-label="玩家必读">
+      <button type="button" class="exit-btn" id="guideBack">返回</button>
+      <h2 class="settings-title">玩家必读</h2>
+      <div class="guide-box">
+        <p class="guide-p">数字会闪一下。看清后说出来，或打出来。</p>
+        <p class="guide-h">开始</p>
+        <p class="guide-p">自己练。点对或点错即可，不算进日榜。</p>
+        <p class="guide-h">日榜</p>
+        <p class="guide-p">每天 0 点重置。必须单人、打字作答，闪现不超过 0.15 秒、至少 6 位。重玩不计分，只有下一轮才算。</p>
+        <p class="guide-h">挑战</p>
+        <p class="guide-p">全服同一道题。第一次要取名字和口令。答对当前挑战后，才能改难度。</p>
+        <p class="guide-h">房间</p>
+        <p class="guide-p">用房间号跟同学一起玩。房主可以改难度。</p>
+        <p class="guide-h">名字和口令</p>
+        <p class="guide-p">日榜和挑战共用。口令 4–8 位，自己记住；换手机时用来取回这个名字。</p>
+      </div>
+      <button type="button" class="start-btn" id="guideOk">知道了</button>
     </section>
 
     <section id="records" class="screen" aria-label="记录">
@@ -1324,6 +1375,10 @@
       const records = document.getElementById("records");
       const recordDetail = document.getElementById("recordDetail");
       const recordsBtn = document.getElementById("recordsBtn");
+      const guide = document.getElementById("guide");
+      const guideBtn = document.getElementById("guideBtn");
+      const guideBack = document.getElementById("guideBack");
+      const guideOk = document.getElementById("guideOk");
       const recordsBack = document.getElementById("recordsBack");
       const clearRecordsBtn = document.getElementById("clearRecordsBtn");
       const recordsEmpty = document.getElementById("recordsEmpty");
@@ -1861,16 +1916,9 @@
         }
         renderHomeBest();
         renderHomeDaily();
-        const why = dailyJoinBlockReason();
-        if (why) {
-          homeBlock.textContent = why;
-          homeBlock.classList.remove("hidden");
-          startBtn.disabled = true;
-        } else {
-          homeBlock.textContent = "";
-          homeBlock.classList.add("hidden");
-          startBtn.disabled = false;
-        }
+        homeBlock.textContent = "";
+        homeBlock.classList.add("hidden");
+        startBtn.disabled = false;
       }
 
       function renderRecords() {
@@ -3955,7 +4003,7 @@
 
       function startGame(mode) {
         armAudio();
-        gameMode = mode || (settingsState.joinDaily ? "daily" : "solo");
+        gameMode = mode || "solo";
         if (gameMode === "daily") {
           settingsState.joinDaily = true;
           clampDailyJoinSettings();
@@ -3999,7 +4047,7 @@
       startBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         armAudio();
-        startGame(settingsState.joinDaily ? "daily" : "solo");
+        startGame("solo");
       });
 
       settingsBtn.addEventListener("click", (e) => {
@@ -4047,6 +4095,25 @@
       recordsBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         openRecords();
+      });
+
+      function openGuide() {
+        phase = "guide";
+        showScreen(guide);
+      }
+      guideBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openGuide();
+      });
+      guideBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
+      });
+      guideOk.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
       });
 
       roomBtn.addEventListener("click", (e) => {

@@ -1,4 +1,4 @@
-const CACHE = "guess-numbers-v26";
+const CACHE = "guess-numbers-v27";
 const ASSETS = [
   "./",
   "./index.html",
