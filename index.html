@@ -387,6 +387,130 @@
 
     .hidden { display: none !important; }
 
+    .exit-btn.right {
+      left: auto;
+      right: calc(env(safe-area-inset-right, 0px) + 12px);
+    }
+    .exit-btn.danger { color: #f87171; }
+
+    #records, #recordDetail {
+      padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .records-empty {
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-top: 48px;
+    }
+
+    .records-list {
+      display: flex;
+      flex-direction: column;
+      margin-top: 4px;
+    }
+
+    .record-row {
+      appearance: none;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: transparent;
+      color: #fff;
+      width: 100%;
+      text-align: left;
+      padding: 16px 8px;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      font-family: inherit;
+      cursor: pointer;
+      font-variant-numeric: tabular-nums;
+    }
+    .record-row:active { opacity: 0.7; }
+
+    .detail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 8px 8px 28px;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .detail-k {
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+    }
+    .detail-v {
+      font-size: 18px;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      white-space: pre-line;
+      line-height: 1.45;
+    }
+
+    .danger-ghost {
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.4);
+      font-size: 18px;
+    }
+
+    .confirm-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.72);
+      padding: 24px;
+    }
+    .confirm-card {
+      width: min(100%, 300px);
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 24px 20px 18px;
+    }
+    .confirm-card p {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .confirm-actions .ghost-btn,
+    .confirm-actions .danger-btn {
+      flex: 1;
+      width: auto;
+      font-size: 18px;
+      padding: 12px 16px;
+    }
+    .danger-btn {
+      appearance: none;
+      border: none;
+      background: #ef4444;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .danger-btn:active { opacity: 0.9; transform: scale(0.98); }
+
     .start-btn:focus-visible,
     .ghost-btn:focus-visible,
     .exit-btn:focus-visible,
@@ -394,6 +518,8 @@
     .judge-btn:focus-visible,
     .group-chip:focus-visible,
     .chip:focus-visible,
+    .record-row:focus-visible,
+    .danger-btn:focus-visible,
     input[type="range"]:focus-visible {
       outline: 2px solid var(--orange);
       outline-offset: 3px;
@@ -410,6 +536,7 @@
       <div class="home-actions">
         <button type="button" class="start-btn" id="startBtn">开始</button>
         <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
+        <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
       </div>
     </section>
 
@@ -507,6 +634,48 @@
         </div>
       </div>
     </section>
+
+    <section id="records" class="screen" aria-label="记录">
+      <button type="button" class="exit-btn" id="recordsBack">返回</button>
+      <button type="button" class="exit-btn right danger hidden" id="clearRecordsBtn">清空</button>
+      <h2 class="settings-title">记录</h2>
+      <p id="recordsEmpty" class="records-empty">还没有记录</p>
+      <div id="recordsList" class="records-list"></div>
+    </section>
+
+    <section id="recordDetail" class="screen" aria-label="记录详情">
+      <button type="button" class="exit-btn" id="detailBack">返回</button>
+      <h2 class="settings-title">记录</h2>
+      <div class="detail-list">
+        <div class="detail-item">
+          <span class="detail-k">时间段</span>
+          <span class="detail-v" id="detailTime"></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-k">难度</span>
+          <span class="detail-v" id="detailDiff"></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-k">对错</span>
+          <span class="detail-v" id="detailScore"></span>
+        </div>
+        <div class="detail-item" id="detailRankBlock">
+          <span class="detail-k">排名</span>
+          <span class="detail-v" id="detailRank"></span>
+        </div>
+      </div>
+      <button type="button" class="ghost-btn danger-ghost" id="deleteRecordBtn">删除本局</button>
+    </section>
+
+    <div id="confirmModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+      <div class="confirm-card">
+        <p id="confirmText"></p>
+        <div class="confirm-actions">
+          <button type="button" class="ghost-btn" id="confirmCancel">取消</button>
+          <button type="button" class="danger-btn" id="confirmOk">删除</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -544,12 +713,34 @@
       const sizeRange = document.getElementById("sizeRange");
       const sizeLabel = document.getElementById("sizeLabel");
       const stageEl = document.querySelector("#game .stage");
+      const records = document.getElementById("records");
+      const recordDetail = document.getElementById("recordDetail");
+      const recordsBtn = document.getElementById("recordsBtn");
+      const recordsBack = document.getElementById("recordsBack");
+      const clearRecordsBtn = document.getElementById("clearRecordsBtn");
+      const recordsEmpty = document.getElementById("recordsEmpty");
+      const recordsList = document.getElementById("recordsList");
+      const detailBack = document.getElementById("detailBack");
+      const detailTime = document.getElementById("detailTime");
+      const detailDiff = document.getElementById("detailDiff");
+      const detailScore = document.getElementById("detailScore");
+      const detailRank = document.getElementById("detailRank");
+      const detailRankBlock = document.getElementById("detailRankBlock");
+      const deleteRecordBtn = document.getElementById("deleteRecordBtn");
+      const confirmModal = document.getElementById("confirmModal");
+      const confirmText = document.getElementById("confirmText");
+      const confirmCancel = document.getElementById("confirmCancel");
+      const confirmOk = document.getElementById("confirmOk");
 
       const STORE = "guess-numbers-settings";
-      const STATS_KEY = "guess-numbers-stats";
+      const SESSIONS_KEY = "guess-numbers-sessions";
+      const MAX_SESSIONS = 200;
 
       let settingsState = loadSettings();
-      let stats = loadStats();
+      let sessions = loadSessions();
+      let currentSession = null;
+      let viewingId = null;
+      let confirmResolve = null;
       let phase = "home";
       let readyTimer = null;
       let flashTimer = null;
@@ -625,80 +816,197 @@
         renderSettings();
       }
 
-      function todayStr() {
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return y + "-" + m + "-" + day;
-      }
-
       function emptyGroups() {
         return [0, 0, 0, 0, 0, 0, 0];
       }
 
-      function normalizeGroups(g) {
-        const out = emptyGroups();
-        if (!Array.isArray(g)) return out;
-        for (let i = 0; i < 7; i++) {
-          const n = Number(g[i]);
-          out[i] = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
-        }
-        return out;
-      }
-
-      function loadStats() {
-        const today = todayStr();
-        let maxDigits = 0;
-        let rolled = true;
-        let parsed = null;
+      function loadSessions() {
         try {
-          const raw = localStorage.getItem(STATS_KEY);
-          if (raw) parsed = JSON.parse(raw);
+          const raw = localStorage.getItem(SESSIONS_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return [];
+          return parsed.filter((s) => s && typeof s === "object" && s.id);
         } catch (_) {
-          parsed = null;
+          return [];
         }
-        if (parsed && typeof parsed === "object") {
-          const md = Number(parsed.maxDigits);
-          if (Number.isFinite(md) && md > 0) maxDigits = Math.floor(md);
-          if (parsed.date === today) {
-            rolled = false;
-            return {
-              date: today,
-              rounds: Math.max(0, Math.floor(Number(parsed.rounds) || 0)),
-              correct: Math.max(0, Math.floor(Number(parsed.correct) || 0)),
-              streak: Math.max(0, Math.floor(Number(parsed.streak) || 0)),
-              maxDigits: maxDigits,
-              groups: normalizeGroups(parsed.groups)
-            };
-          }
-        }
-        const fresh = {
-          date: today,
-          rounds: 0,
-          correct: 0,
-          streak: 0,
-          maxDigits: maxDigits,
-          groups: emptyGroups()
-        };
-        if (rolled) saveStatsObject(fresh);
-        return fresh;
       }
 
-      function saveStatsObject(obj) {
+      function saveSessions() {
         try {
-          localStorage.setItem(STATS_KEY, JSON.stringify(obj));
+          localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
         } catch (_) {}
       }
 
-      function saveStats() {
-        saveStatsObject(stats);
-        renderHomeHint();
+      function pad2(n) {
+        return String(n).padStart(2, "0");
       }
 
-      function bumpMaxDigits() {
-        const len = (lastNumber || "").length;
-        if (len > stats.maxDigits) stats.maxDigits = len;
+      function formatClock(ms) {
+        const d = new Date(ms);
+        return pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+      }
+
+      function formatMonthDayTime(ms) {
+        const d = new Date(ms);
+        return (d.getMonth() + 1) + "月" + d.getDate() + "日 " + formatClock(ms);
+      }
+
+      function sameCalendarDay(a, b) {
+        const da = new Date(a);
+        const db = new Date(b);
+        return (
+          da.getFullYear() === db.getFullYear() &&
+          da.getMonth() === db.getMonth() &&
+          da.getDate() === db.getDate()
+        );
+      }
+
+      function formatTimeRange(start, end) {
+        if (sameCalendarDay(start, end)) return formatClock(start) + "–" + formatClock(end);
+        return formatMonthDayTime(start) + " – " + formatMonthDayTime(end);
+      }
+
+      function sessionPlayers(s) {
+        const n = Number(s && s.playerCount);
+        if (!Number.isFinite(n)) return 1;
+        return Math.min(7, Math.max(1, Math.round(n)));
+      }
+
+      function sessionWinnerIndex(s) {
+        const n = sessionPlayers(s);
+        const groups = Array.isArray(s.groups) ? s.groups : [];
+        let winner = -1;
+        let max = -1;
+        let ties = 0;
+        for (let i = 0; i < n; i++) {
+          const g = Number(groups[i]) || 0;
+          if (g > max) {
+            max = g;
+            winner = i;
+            ties = 1;
+          } else if (g === max) {
+            ties += 1;
+          }
+        }
+        if (max <= 0 || ties !== 1) return -1;
+        return winner;
+      }
+
+      function sessionRowText(s) {
+        const rounds = Math.max(0, Math.floor(Number(s.rounds) || 0));
+        const head = formatMonthDayTime(s.startAt) + " · " + rounds + " 轮";
+        const n = sessionPlayers(s);
+        if (n <= 1) return head + " · 单人";
+        const w = sessionWinnerIndex(s);
+        const people = n + "人";
+        if (w < 0) return head + " · " + people;
+        return head + " · " + people + " · 组" + (w + 1) + "胜";
+      }
+
+      function sessionDifficulty(s) {
+        const set = s.settings || {};
+        const flash = ((Number(set.flashMs) || 0) / 1000).toFixed(2) + "秒";
+        let digits;
+        if (set.digits === "mix") {
+          digits = "随机 " + set.mixMin + "–" + set.mixMax + "位";
+        } else {
+          digits = set.digits + "位";
+        }
+        const n = sessionPlayers(s);
+        const people = n <= 1 ? "单人" : n + "人";
+        return flash + " · " + digits + " · " + people;
+      }
+
+      function sessionScoreText(s) {
+        const n = sessionPlayers(s);
+        if (n <= 1) {
+          return "对 " + (Number(s.correct) || 0) + " · 错 " + (Number(s.wrong) || 0);
+        }
+        const groups = Array.isArray(s.groups) ? s.groups : [];
+        const parts = [];
+        for (let i = 0; i < n; i++) {
+          parts.push("组" + (i + 1) + " " + (Number(groups[i]) || 0));
+        }
+        return parts.join(" · ");
+      }
+
+      function sessionRankText(s) {
+        const n = sessionPlayers(s);
+        if (n <= 1) {
+          const rounds = Math.max(0, Math.floor(Number(s.rounds) || 0));
+          const correct = Math.max(0, Math.floor(Number(s.correct) || 0));
+          if (!rounds) return "正确率 —";
+          return "正确率 " + Math.round((correct / rounds) * 100) + "%";
+        }
+        const items = [];
+        const groups = Array.isArray(s.groups) ? s.groups : [];
+        for (let i = 0; i < n; i++) {
+          items.push({ i: i, score: Number(groups[i]) || 0 });
+        }
+        items.sort((a, b) => b.score - a.score || a.i - b.i);
+        let lastScore = null;
+        let lastRank = 0;
+        const lines = [];
+        for (let k = 0; k < items.length; k++) {
+          const rank = lastScore !== null && items[k].score === lastScore ? lastRank : k + 1;
+          lastRank = rank;
+          lastScore = items[k].score;
+          lines.push(rank + ". 组" + (items[k].i + 1) + "  " + items[k].score);
+        }
+        return lines.join("\n");
+      }
+
+      function newSessionId() {
+        return String(Date.now()) + Math.random().toString(36).slice(2, 8);
+      }
+
+      function beginSession() {
+        const n = settingsState.playerCount;
+        currentSession = {
+          id: newSessionId(),
+          startAt: Date.now(),
+          endAt: 0,
+          playerCount: n,
+          settings: {
+            flashMs: settingsState.flashMs,
+            digits: settingsState.digits,
+            mixMin: settingsState.mixMin,
+            mixMax: settingsState.mixMax,
+            sizePct: settingsState.sizePct
+          },
+          rounds: 0,
+          correct: 0,
+          wrong: 0,
+          groups: Array.from({ length: n }, () => 0)
+        };
+      }
+
+      function finalizeSession() {
+        if (!currentSession) return;
+        if (currentSession.rounds >= 1) {
+          currentSession.endAt = Date.now();
+          sessions.unshift(currentSession);
+          if (sessions.length > MAX_SESSIONS) sessions.length = MAX_SESSIONS;
+          saveSessions();
+        }
+        currentSession = null;
+      }
+
+      function askConfirm(msg) {
+        return new Promise((resolve) => {
+          if (confirmResolve) confirmResolve(false);
+          confirmResolve = resolve;
+          confirmText.textContent = msg;
+          confirmModal.classList.remove("hidden");
+        });
+      }
+
+      function closeConfirm(ok) {
+        confirmModal.classList.add("hidden");
+        const fn = confirmResolve;
+        confirmResolve = null;
+        if (fn) fn(!!ok);
       }
 
       function digitsLabel() {
@@ -713,8 +1021,48 @@
       }
 
       function renderHomeHint() {
-        homeHint.textContent =
-          "今日 " + stats.rounds + " 次 · 连对 " + stats.streak + " · 最长 " + stats.maxDigits + " 位";
+        if (!sessions.length) {
+          homeHint.textContent = "共 0 局";
+          return;
+        }
+        homeHint.textContent = sessionRowText(sessions[0]);
+      }
+
+      function renderRecords() {
+        const empty = sessions.length === 0;
+        recordsEmpty.classList.toggle("hidden", !empty);
+        clearRecordsBtn.classList.toggle("hidden", empty);
+        recordsList.innerHTML = "";
+        if (empty) return;
+        sessions.forEach((s) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "record-row";
+          btn.dataset.id = s.id;
+          btn.textContent = sessionRowText(s);
+          recordsList.appendChild(btn);
+        });
+      }
+
+      function openRecords() {
+        phase = "records";
+        renderRecords();
+        showScreen(records);
+      }
+
+      function openRecordDetail(id) {
+        const s = sessions.find((x) => x.id === id);
+        if (!s) {
+          openRecords();
+          return;
+        }
+        viewingId = id;
+        phase = "recordDetail";
+        detailTime.textContent = formatTimeRange(s.startAt, s.endAt || s.startAt);
+        detailDiff.textContent = sessionDifficulty(s);
+        detailScore.textContent = sessionScoreText(s);
+        detailRank.textContent = sessionRankText(s);
+        showScreen(recordDetail);
       }
 
       function renderSettings() {
@@ -752,6 +1100,8 @@
         home.classList.remove("active");
         game.classList.remove("active");
         settings.classList.remove("active");
+        records.classList.remove("active");
+        recordDetail.classList.remove("active");
         el.classList.add("active");
       }
 
@@ -976,34 +1326,24 @@
 
       function recordSolo(ok) {
         if (phase !== "answer") return;
-        stats.rounds += 1;
-        if (ok) {
-          stats.correct += 1;
-          stats.streak += 1;
-        } else {
-          stats.streak = 0;
+        if (currentSession) {
+          currentSession.rounds += 1;
+          if (ok) currentSession.correct += 1;
+          else currentSession.wrong += 1;
         }
-        bumpMaxDigits();
-        saveStats();
         enterReady(false);
       }
 
       function commitMulti() {
         if (phase !== "answer") return;
-        const n = settingsState.playerCount;
-        let allCorrect = n > 0;
+        const n = currentSession ? currentSession.playerCount : settingsState.playerCount;
         for (let i = 0; i < n; i++) {
           if (groupSelected[i]) {
             sessionScores[i] += 1;
-            stats.groups[i] += 1;
-          } else {
-            allCorrect = false;
+            if (currentSession) currentSession.groups[i] += 1;
           }
         }
-        stats.rounds += 1;
-        stats.streak = allCorrect ? stats.streak + 1 : 0;
-        bumpMaxDigits();
-        saveStats();
+        if (currentSession) currentSession.rounds += 1;
         renderSessionScores();
         enterReady(false);
       }
@@ -1020,8 +1360,14 @@
         renderHomeHint();
       }
 
+      function leaveGame() {
+        finalizeSession();
+        goHome();
+      }
+
       function startGame() {
         sessionScores = emptyGroups();
+        beginSession();
         showScreen(game);
         enterReady(false);
       }
@@ -1035,6 +1381,71 @@
         e.stopPropagation();
         phase = "settings";
         showScreen(settings);
+      });
+
+      recordsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openRecords();
+      });
+
+      recordsBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
+      });
+
+      recordsList.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-id]");
+        if (!btn) return;
+        openRecordDetail(btn.dataset.id);
+      });
+
+      detailBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        viewingId = null;
+        openRecords();
+      });
+
+      clearRecordsBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!sessions.length) return;
+        const ok = await askConfirm("删除全部记录？");
+        if (!ok) return;
+        sessions = [];
+        saveSessions();
+        renderRecords();
+        renderHomeHint();
+      });
+
+      deleteRecordBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!viewingId) return;
+        const ok = await askConfirm("删除这条记录？");
+        if (!ok) return;
+        sessions = sessions.filter((s) => s.id !== viewingId);
+        saveSessions();
+        viewingId = null;
+        renderHomeHint();
+        openRecords();
+      });
+
+      confirmCancel.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeConfirm(false);
+      });
+
+      confirmOk.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeConfirm(true);
+      });
+
+      confirmModal.addEventListener("click", (e) => {
+        if (e.target === confirmModal) closeConfirm(false);
       });
 
       settingsBack.addEventListener("click", (e) => {
@@ -1112,7 +1523,7 @@
       exitBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        goHome();
+        leaveGame();
       });
 
       replayBtn.addEventListener("click", (e) => {
@@ -1155,9 +1566,20 @@
 
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-          if (phase === "home") return;
           e.preventDefault();
-          goHome();
+          if (!confirmModal.classList.contains("hidden")) {
+            closeConfirm(false);
+            return;
+          }
+          if (phase === "home") return;
+          if (phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer") {
+            leaveGame();
+          } else if (phase === "recordDetail") {
+            viewingId = null;
+            openRecords();
+          } else {
+            goHome();
+          }
           return;
         }
         if (e.repeat) return;
