@@ -75,8 +75,23 @@
         padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
       }
       .stage {
-        padding: 0 16px 72px;
+        padding: 0 20px 12px;
+        min-height: 0;
+        overflow: hidden;
       }
+      #game.answering .stage { padding-bottom: 96px; }
+      .answer-bar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+      }
+      .judge-row { max-width: none; width: auto; }
+      .judge-btn { font-size: 18px; padding: 8px 16px; }
+      .group-chip { width: 40px; height: 40px; font-size: 16px; }
+      .replay-btn { font-size: 16px; padding: 8px 18px; }
+      .phase-text { font-size: clamp(40px, 16vh, 72px); }
       .home-actions {
         flex-direction: row;
         width: min(100%, 520px);
@@ -186,11 +201,14 @@
 
     .stage {
       flex: 1;
+      min-height: 0;
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0 12px 88px;
       pointer-events: none;
+      overflow: hidden;
     }
 
     .phase-text {
@@ -207,18 +225,19 @@
     .numbers {
       display: block;
       max-width: 100%;
+      max-height: 100%;
       color: #fff;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
       font-weight: 700;
-      font-size: clamp(64px, 20vw, 104px);
-      font-size: clamp(64px, 20cqi, 104px);
-      letter-spacing: 0.04em;
-      line-height: 1.08;
+      font-size: 48px;
+      letter-spacing: 0.02em;
+      line-height: 1.05;
       text-align: center;
       white-space: normal;
       word-break: break-all;
       overflow-wrap: anywhere;
+      overflow: hidden;
     }
     .numbers.answer { color: #22C55E; }
 
@@ -236,6 +255,9 @@
     }
 
     #game.answering .stage { padding-bottom: 220px; }
+    @media (orientation: landscape) and (max-height: 560px) {
+      #game.answering .stage { padding-bottom: 96px; }
+    }
 
     .answer-bar {
       position: absolute;
@@ -1248,23 +1270,34 @@
         }
       }
 
+      function stageInnerBox() {
+        if (!stageEl) {
+          return { width: Math.max(40, window.innerWidth - 32), height: Math.max(40, window.innerHeight * 0.5) };
+        }
+        const cs = getComputedStyle(stageEl);
+        const width = stageEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const height = stageEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        return { width: Math.max(40, width), height: Math.max(40, height) };
+      }
+
       function applyNumberSize() {
         const text = lastNumber || flashText.textContent || "0";
         const n = Math.max(1, text.length);
-        const width = Math.max(80, (stageEl ? stageEl.clientWidth : window.innerWidth) - 16);
-        const height = Math.max(80, (stageEl ? stageEl.clientHeight : window.innerHeight) * 0.82);
-        const glyph = 0.58;
-        const ls = 0.03;
-        const lh = 1.06;
-        let lo = 24;
-        let hi = Math.min(width, height, 280);
-        let best = 24;
+        const box = stageInnerBox();
+        const width = box.width;
+        const height = box.height;
+        const glyph = 0.72;
+        const ls = 0.02;
+        const lh = 1.05;
+        let lo = 12;
+        let hi = Math.min(width, height, 240);
+        let best = 12;
         while (hi - lo > 0.5) {
           const fs = (lo + hi) / 2;
           const colW = fs * (glyph + ls);
           const cols = Math.max(1, Math.floor(width / colW));
           const rows = Math.ceil(n / cols);
-          if (rows * fs * lh <= height) {
+          if (rows * fs * lh <= height && n * colW / rows <= width) {
             best = fs;
             lo = fs;
           } else {
@@ -1272,8 +1305,19 @@
           }
         }
         best *= settingsState.sizePct / 100;
+        flashText.style.maxWidth = width + "px";
+        flashText.style.maxHeight = height + "px";
         flashText.style.fontSize = best + "px";
         flashText.style.letterSpacing = best * ls + "px";
+        if (flashText.offsetParent) {
+          for (let i = 0; i < 24; i++) {
+            if (flashText.scrollWidth <= width + 1 && flashText.scrollHeight <= height + 1) break;
+            best *= 0.9;
+            if (best < 12) break;
+            flashText.style.fontSize = best + "px";
+            flashText.style.letterSpacing = best * ls + "px";
+          }
+        }
       }
 
       function enterReady(keep) {
@@ -1318,8 +1362,8 @@
         flashText.classList.add("answer");
         flashText.textContent = lastNumber;
         showOnly(flashText);
-        applyNumberSize();
         setAnswerControls(true);
+        requestAnimationFrame(applyNumberSize);
         renderSessionScores();
         vibrate();
       }
