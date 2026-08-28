@@ -1,4 +1,4 @@
-const CACHE = "guess-numbers-v22";
+const CACHE = "guess-numbers-v23";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,7 +7,15 @@ const ASSETS = [
   "./icon.svg",
   "./icon-192.png",
   "./icon-512.png",
-  "./apple-touch-icon.png"
+  "./apple-touch-icon.png",
+  "./sfx/ready.wav",
+  "./sfx/tick.wav",
+  "./sfx/reveal.wav",
+  "./sfx/correct.wav",
+  "./sfx/wrong.wav",
+  "./sfx/win.wav",
+  "./sfx/lose.wav",
+  "./sfx/record.wav"
 ];
 
 self.addEventListener("install", (event) => {
