@@ -1656,7 +1656,7 @@
               mixMax: mix.max,
               sizePct: clampSize(parsed.sizePct),
               playerCount: clampPlayers(parsed.playerCount),
-              joinDaily: !!parsed.joinDaily
+              joinDaily: false
             };
           }
         } catch (_) {}
@@ -2542,7 +2542,7 @@
       }
 
       async function patchDailyPlayer() {
-        if (!globalName || !settingsState.joinDaily) return;
+        if (!globalName || gameMode !== "daily" || !settingsState.joinDaily) return;
         await ensureFbAuth();
         if (!fbLocalId) throw new Error("auth");
         const s = ensureDailyDay();
@@ -2565,7 +2565,7 @@
       }
 
       function queueDailyUpload() {
-        if (!globalName || !settingsState.joinDaily) return;
+        if (!globalName || gameMode !== "daily" || !settingsState.joinDaily) return;
         dailyWriteAgain = true;
         if (dailyWriteBusy) return;
         dailyWriteBusy = true;
@@ -2581,7 +2581,7 @@
       }
 
       function bumpDaily(ok) {
-        if (!globalName || !settingsState.joinDaily) return;
+        if (!globalName || gameMode !== "daily" || !settingsState.joinDaily) return;
         const s = ensureDailyDay();
         if (ok) s.correct += 1;
         else s.wrong += 1;
@@ -4603,6 +4603,10 @@
         hideBestBanner();
         phase = "home";
         if (gameMode !== "room") gameMode = "solo";
+        if (settingsState.joinDaily) {
+          settingsState.joinDaily = false;
+          saveSettings();
+        }
         showScreen(home);
         readyText.classList.add("hidden");
         flashText.classList.add("hidden");
@@ -4649,6 +4653,11 @@
       function startGame(mode) {
         armAudio();
         gameMode = mode || "solo";
+        if (gameMode !== "daily" && settingsState.joinDaily) {
+          settingsState.joinDaily = false;
+          saveSettings();
+          renderSettings();
+        }
         if (gameMode === "daily") {
           settingsState.joinDaily = true;
           clampDailyJoinSettings();
