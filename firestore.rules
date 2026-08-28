@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Assumed data model
+    // usernames/{name}: { playerId: string, createdAt: int }
+    // daily/{yyyy-MM-dd}/players/{uid}: { playerId, name, correct, wrong, rankScore, t }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isValidUsername() {
+      return request.resource.data.keys().hasOnly(['playerId', 'createdAt'])
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.playerId is string
+        && request.resource.data.playerId.size() >= 8
+        && request.resource.data.playerId.size() <= 128
+        && request.resource.data.createdAt is int;
+    }
+
+    function isValidDailyPlayer(pid) {
+      return request.resource.data.keys().hasOnly(['playerId', 'name', 'correct', 'wrong', 'rankScore', 't'])
+        && request.resource.data.playerId == request.auth.uid
+        && request.resource.data.playerId == pid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 8
+        && request.resource.data.correct is int
+        && request.resource.data.wrong is int
+        && request.resource.data.rankScore is int
+        && request.resource.data.t is int
+        && request.resource.data.correct >= 0
+        && request.resource.data.wrong >= 0
+        && request.resource.data.correct <= 100000
+        && request.resource.data.wrong <= 100000;
+    }
+
+    function ownsName() {
+      let n = request.resource.data.name;
+      return exists(/databases/$(database)/documents/usernames/$(n))
+        && get(/databases/$(database)/documents/usernames/$(n)).data.playerId == request.auth.uid;
+    }
+
+    match /usernames/{uname} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && isValidUsername();
+      allow update, delete: if false;
+    }
+
+    match /daily/{day}/players/{pid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == pid
+        && isValidDailyPlayer(pid)
+        && ownsName();
+      allow delete: if false;
+    }
+  }
+}

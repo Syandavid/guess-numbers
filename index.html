@@ -115,6 +115,18 @@
       .room-lobby-actions .start-btn,
       .room-lobby-actions .ghost-btn { font-size: 18px; padding: 10px 16px; }
       .room-join-row .ghost-btn { font-size: 16px; padding: 8px 16px; }
+      #daily {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 24px);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 24px);
+        gap: 8px;
+      }
+      .daily-date { font-size: 16px; margin-top: 0; }
+      .daily-sub { font-size: 12px; }
+      .daily-you { font-size: 14px; margin: 0; }
+      #daily .room-rank { padding: 6px 8px; font-size: 14px; }
+      .daily-name-box, .daily-board-box, #daily .room-board, #daily .settings-title { width: min(100%, 520px); }
     }
 
     @media (hover: hover) and (pointer: fine) and (min-width: 960px) and (min-height: 700px) {
@@ -713,6 +725,64 @@
     }
     .danger-btn:active { opacity: 0.9; transform: scale(0.98); }
 
+    #daily {
+      padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
+      gap: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      align-items: center;
+    }
+    #daily .settings-title {
+      width: min(100%, 320px);
+      padding: 0 8px;
+      align-self: center;
+    }
+    .daily-date {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      width: min(100%, 320px);
+    }
+    .daily-sub {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      width: min(100%, 320px);
+      margin-top: -4px;
+    }
+    .daily-you {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-align: center;
+      width: min(100%, 320px);
+      font-variant-numeric: tabular-nums;
+    }
+    .daily-name-box, .daily-board-box {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .daily-board-box { align-items: center; }
+    #daily .room-board {
+      width: min(100%, 320px);
+    }
+    .room-rank.me {
+      color: var(--orange);
+    }
+    .room-rank.me .room-rank-n,
+    .room-rank.me .room-rank-name,
+    .room-rank.me .room-rank-score {
+      color: var(--orange);
+    }
+
     .start-btn:focus-visible,
     .ghost-btn:focus-visible,
     .exit-btn:focus-visible,
@@ -723,6 +793,7 @@
     .record-row:focus-visible,
     .danger-btn:focus-visible,
     .room-input:focus-visible,
+    #dailyNameInput:focus-visible,
     input[type="range"]:focus-visible {
       outline: 2px solid var(--orange);
       outline-offset: 3px;
@@ -736,10 +807,14 @@
       <h1 class="title">猜数字</h1>
       <p class="home-hint" id="homeHint"></p>
       <p class="home-best" id="homeBest"></p>
+      <p class="home-best hidden" id="homeDaily"></p>
       <div class="home-spacer"></div>
       <div class="home-actions">
         <button type="button" class="start-btn" id="startBtn">开始</button>
-        <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
+        <div class="home-pair">
+          <button type="button" class="ghost-btn" id="settingsBtn">难度设置</button>
+          <button type="button" class="ghost-btn" id="dailyBtn">日榜</button>
+        </div>
         <div class="home-pair">
           <button type="button" class="ghost-btn" id="recordsBtn">记录</button>
           <button type="button" class="ghost-btn" id="roomBtn">房间</button>
@@ -903,6 +978,24 @@
       </div>
     </section>
 
+    <section id="daily" class="screen" aria-label="今日榜">
+      <button type="button" class="exit-btn" id="dailyBack">返回</button>
+      <h2 class="settings-title">今日榜</h2>
+      <p class="daily-date" id="dailyDate"></p>
+      <p class="daily-sub">每天 0 点重置 · 前 10000 名</p>
+      <p id="dailyError" class="room-error hidden">日榜暂时连不上</p>
+      <div id="dailyNameBox" class="daily-name-box hidden">
+        <input class="room-input" id="dailyNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button type="button" class="start-btn" id="dailyNameOk">确定</button>
+        <p id="dailyNameErr" class="room-error hidden"></p>
+      </div>
+      <div id="dailyBoardBox" class="daily-board-box hidden">
+        <p class="daily-you" id="dailyYou"></p>
+        <div id="dailyList" class="room-board"></div>
+        <p id="dailyTotal" class="room-count hidden"></p>
+      </div>
+    </section>
+
     <div id="confirmModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmText">
       <div class="confirm-card">
         <p id="confirmText"></p>
@@ -988,6 +1081,20 @@
       const roomCount = document.getElementById("roomCount");
       const roomStart = document.getElementById("roomStart");
       const roomLeave = document.getElementById("roomLeave");
+      const daily = document.getElementById("daily");
+      const dailyBtn = document.getElementById("dailyBtn");
+      const dailyBack = document.getElementById("dailyBack");
+      const dailyDate = document.getElementById("dailyDate");
+      const dailyError = document.getElementById("dailyError");
+      const dailyNameBox = document.getElementById("dailyNameBox");
+      const dailyNameInput = document.getElementById("dailyNameInput");
+      const dailyNameOk = document.getElementById("dailyNameOk");
+      const dailyNameErr = document.getElementById("dailyNameErr");
+      const dailyBoardBox = document.getElementById("dailyBoardBox");
+      const dailyYou = document.getElementById("dailyYou");
+      const dailyList = document.getElementById("dailyList");
+      const dailyTotal = document.getElementById("dailyTotal");
+      const homeDaily = document.getElementById("homeDaily");
 
       const STORE = "guess-numbers-settings";
       const SESSIONS_KEY = "guess-numbers-sessions";
@@ -1028,6 +1135,32 @@
       let mqttWanted = false;
       let mqttGen = 0;
       let mqttWaiters = [];
+
+      const FB_API_KEY = "AIzaSyDGONuo2f1PMZIGUXrDIXsbts29vFKKPOE";
+      const FB_PROJECT = "guessnums-9f588";
+      const FB_SIGNUP = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + FB_API_KEY;
+      const FB_REFRESH = "https://securetoken.googleapis.com/v1/token?key=" + FB_API_KEY;
+      const FB_DOCS = "https://firestore.googleapis.com/v1/projects/" + FB_PROJECT + "/databases/(default)/documents";
+      const GLOBAL_NAME_KEY = "guess-numbers-global-name";
+      const FB_REFRESH_KEY = "guess-numbers-fb-refresh";
+      const FB_LOCAL_ID_KEY = "guess-numbers-fb-local-id";
+      const DAILY_STATS_KEY = "guess-numbers-daily-stats";
+      const DAILY_RANK_KEY = "guess-numbers-daily-rank";
+      const DAILY_CAP = 10000;
+      const DAILY_LIST_LIMIT = 50;
+
+      let fbIdToken = "";
+      let fbIdExp = 0;
+      let fbLocalId = "";
+      let fbRefreshToken = "";
+      let globalName = "";
+      let dailyStats = { day: "", correct: 0, wrong: 0 };
+      let dailyRankCache = null;
+      let dailyWriteBusy = false;
+      let dailyWriteAgain = false;
+      let dailyNameBusy = false;
+      loadFbSession();
+      ensureDailyDay();
 
       function loadPlayerId() {
         try {
@@ -1834,6 +1967,7 @@
           homeHint.textContent = sessionRowText(sessions[0]);
         }
         renderHomeBest();
+        renderHomeDaily();
       }
 
       function renderRecords() {
@@ -1909,6 +2043,525 @@
         });
       }
 
+      function lsGet(key) {
+        try {
+          return localStorage.getItem(key);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function lsSet(key, val) {
+        try {
+          localStorage.setItem(key, val);
+        } catch (_) {}
+      }
+
+      function loadFbSession() {
+        fbRefreshToken = lsGet(FB_REFRESH_KEY) || "";
+        fbLocalId = lsGet(FB_LOCAL_ID_KEY) || "";
+        globalName = lsGet(GLOBAL_NAME_KEY) || "";
+        dailyStats = { day: "", correct: 0, wrong: 0 };
+        try {
+          const raw = lsGet(DAILY_STATS_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") {
+              dailyStats = {
+                day: String(parsed.day || ""),
+                correct: Math.max(0, Math.floor(Number(parsed.correct) || 0)),
+                wrong: Math.max(0, Math.floor(Number(parsed.wrong) || 0))
+              };
+            }
+          }
+        } catch (_) {}
+        dailyRankCache = null;
+        try {
+          const raw = lsGet(DAILY_RANK_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object") {
+              dailyRankCache = {
+                day: String(parsed.day || ""),
+                rank: Math.max(0, Math.floor(Number(parsed.rank) || 0)),
+                correct: Math.max(0, Math.floor(Number(parsed.correct) || 0)),
+                hasScore: !!parsed.hasScore
+              };
+            }
+          }
+        } catch (_) {}
+      }
+
+      function saveFbAuth() {
+        if (fbRefreshToken) lsSet(FB_REFRESH_KEY, fbRefreshToken);
+        if (fbLocalId) lsSet(FB_LOCAL_ID_KEY, fbLocalId);
+      }
+
+      function saveGlobalName(name) {
+        globalName = name;
+        lsSet(GLOBAL_NAME_KEY, name);
+      }
+
+      function saveDailyStats() {
+        lsSet(DAILY_STATS_KEY, JSON.stringify(dailyStats));
+      }
+
+      function saveDailyRank() {
+        if (!dailyRankCache) return;
+        lsSet(DAILY_RANK_KEY, JSON.stringify(dailyRankCache));
+      }
+
+      function shanghaiDay(ms) {
+        const d = ms != null ? new Date(ms) : new Date();
+        try {
+          return new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Shanghai",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+          }).format(d);
+        } catch (_) {
+          const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+          const bj = new Date(utc + 8 * 3600000);
+          return bj.getFullYear() + "-" + pad2(bj.getMonth() + 1) + "-" + pad2(bj.getDate());
+        }
+      }
+
+      function formatShanghaiDateLabel(day) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ""));
+        if (!m) return String(day || "") + " · 北京时间";
+        return Number(m[1]) + "年" + Number(m[2]) + "月" + Number(m[3]) + "日 · 北京时间";
+      }
+
+      function normalizeGlobalName(raw) {
+        const s = String(raw || "").trim();
+        if (!s || /\s/.test(s)) return "";
+        if (!/^[\u4e00-\u9fffA-Za-z0-9]{2,8}$/.test(s)) return "";
+        return s;
+      }
+
+      function rankScoreOf(correct, wrong) {
+        return correct * 10000 - wrong;
+      }
+
+      function ensureDailyDay() {
+        const day = shanghaiDay();
+        if (!dailyStats || dailyStats.day !== day) {
+          dailyStats = { day: day, correct: 0, wrong: 0 };
+          saveDailyStats();
+        }
+        return dailyStats;
+      }
+
+      function fsStr(s) {
+        return { stringValue: String(s) };
+      }
+
+      function fsInt(n) {
+        return { integerValue: String(Math.trunc(Number(n) || 0)) };
+      }
+
+      function fsVal(fields, key) {
+        const f = fields && fields[key];
+        if (!f) return undefined;
+        if (f.stringValue != null) return f.stringValue;
+        if (f.integerValue != null) return Number(f.integerValue);
+        if (f.doubleValue != null) return Number(f.doubleValue);
+        return undefined;
+      }
+
+      function parseAggCount(data) {
+        const row = Array.isArray(data) ? data[0] : data;
+        const fields = row && row.result && row.result.aggregateFields;
+        if (!fields) return null;
+        const v = fields.c || fields.count;
+        if (!v) return null;
+        if (v.integerValue != null) return Number(v.integerValue);
+        if (v.doubleValue != null) return Number(v.doubleValue);
+        return null;
+      }
+
+      async function ensureFbAuth() {
+        const now = Date.now();
+        if (fbIdToken && fbIdExp > now + 60000 && fbLocalId) return fbIdToken;
+        if (fbRefreshToken) {
+          const res = await fetch(FB_REFRESH, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(fbRefreshToken)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.id_token) throw new Error("auth");
+          fbIdToken = data.id_token;
+          fbRefreshToken = data.refresh_token || fbRefreshToken;
+          fbLocalId = data.user_id || fbLocalId;
+          fbIdExp = now + Number(data.expires_in || 3600) * 1000;
+          saveFbAuth();
+          return fbIdToken;
+        }
+        if (globalName) throw new Error("auth");
+        const res = await fetch(FB_SIGNUP, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ returnSecureToken: true })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.idToken || !data.localId) throw new Error("auth");
+        fbIdToken = data.idToken;
+        fbRefreshToken = data.refreshToken || "";
+        fbLocalId = data.localId;
+        fbIdExp = now + Number(data.expiresIn || 3600) * 1000;
+        saveFbAuth();
+        return fbIdToken;
+      }
+
+      async function fbFetch(url, opts, retry) {
+        const token = await ensureFbAuth();
+        const headers = Object.assign({}, (opts && opts.headers) || {}, {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        });
+        const res = await fetch(url, Object.assign({}, opts || {}, { headers: headers }));
+        if (res.status === 401 && !retry) {
+          fbIdToken = "";
+          fbIdExp = 0;
+          return fbFetch(url, opts, true);
+        }
+        return res;
+      }
+
+      function showDailyError(on) {
+        dailyError.classList.toggle("hidden", !on);
+      }
+
+      function showDailyNameErr(msg) {
+        if (!msg) {
+          dailyNameErr.textContent = "";
+          dailyNameErr.classList.add("hidden");
+          return;
+        }
+        dailyNameErr.textContent = msg;
+        dailyNameErr.classList.remove("hidden");
+      }
+
+      function renderHomeDaily() {
+        if (!globalName) {
+          homeDaily.textContent = "";
+          homeDaily.classList.add("hidden");
+          return;
+        }
+        homeDaily.classList.remove("hidden");
+        const day = shanghaiDay();
+        const stats = dailyStats && dailyStats.day === day ? dailyStats : null;
+        const hasScore = !!(stats && (stats.correct > 0 || stats.wrong > 0));
+        const cache = dailyRankCache && dailyRankCache.day === day ? dailyRankCache : null;
+        const ranked = cache && cache.hasScore && cache.rank >= 1 && cache.rank <= DAILY_CAP;
+        if (!hasScore || !ranked) {
+          homeDaily.textContent = "今日 未上榜";
+          return;
+        }
+        homeDaily.textContent = "今日 第" + cache.rank + "名";
+      }
+
+      async function claimUsername(name) {
+        const url = FB_DOCS + "/usernames?documentId=" + encodeURIComponent(name);
+        const res = await fbFetch(url, {
+          method: "POST",
+          body: JSON.stringify({
+            fields: {
+              playerId: fsStr(fbLocalId),
+              createdAt: fsInt(Date.now())
+            }
+          })
+        });
+        if (res.status === 409) return "taken";
+        const data = await res.json().catch(() => ({}));
+        const err = data && data.error ? JSON.stringify(data.error) : "";
+        if (res.status === 409 || /ALREADY_EXISTS/i.test(err)) return "taken";
+        if (!res.ok) throw new Error("net");
+        return "ok";
+      }
+
+      async function patchDailyPlayer() {
+        if (!globalName) return;
+        await ensureFbAuth();
+        if (!fbLocalId) throw new Error("auth");
+        const s = ensureDailyDay();
+        const body = {
+          fields: {
+            playerId: fsStr(fbLocalId),
+            name: fsStr(globalName),
+            correct: fsInt(s.correct),
+            wrong: fsInt(s.wrong),
+            rankScore: fsInt(rankScoreOf(s.correct, s.wrong)),
+            t: fsInt(Date.now())
+          }
+        };
+        const mask = ["playerId", "name", "correct", "wrong", "rankScore", "t"]
+          .map((f) => "updateMask.fieldPaths=" + encodeURIComponent(f))
+          .join("&");
+        const url = FB_DOCS + "/daily/" + encodeURIComponent(s.day) + "/players/" + encodeURIComponent(fbLocalId) + "?" + mask;
+        const res = await fbFetch(url, { method: "PATCH", body: JSON.stringify(body) });
+        if (!res.ok) throw new Error("net");
+      }
+
+      function queueDailyUpload() {
+        if (!globalName) return;
+        dailyWriteAgain = true;
+        if (dailyWriteBusy) return;
+        dailyWriteBusy = true;
+        (async function loop() {
+          while (dailyWriteAgain) {
+            dailyWriteAgain = false;
+            try {
+              await patchDailyPlayer();
+            } catch (_) {}
+          }
+          dailyWriteBusy = false;
+        })();
+      }
+
+      function bumpDaily(ok) {
+        if (!globalName) return;
+        const s = ensureDailyDay();
+        if (ok) s.correct += 1;
+        else s.wrong += 1;
+        saveDailyStats();
+        queueDailyUpload();
+      }
+
+      async function queryTop50(day) {
+        const url = FB_DOCS + "/daily/" + encodeURIComponent(day) + ":runQuery";
+        const res = await fbFetch(url, {
+          method: "POST",
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "players" }],
+              orderBy: [{ field: { fieldPath: "rankScore" }, direction: "DESCENDING" }],
+              limit: DAILY_LIST_LIMIT
+            }
+          })
+        });
+        if (!res.ok) throw new Error("net");
+        const rows = await res.json();
+        const list = [];
+        (Array.isArray(rows) ? rows : []).forEach((row) => {
+          const doc = row && row.document;
+          if (!doc || !doc.fields) return;
+          const f = doc.fields;
+          list.push({
+            name: String(fsVal(f, "name") || ""),
+            correct: Math.max(0, Math.floor(Number(fsVal(f, "correct")) || 0)),
+            playerId: String(fsVal(f, "playerId") || ""),
+            rankScore: Number(fsVal(f, "rankScore")) || 0
+          });
+        });
+        return list;
+      }
+
+      async function runCount(day, filterScore) {
+        const structuredQuery = {
+          from: [{ collectionId: "players" }]
+        };
+        if (filterScore != null) {
+          structuredQuery.where = {
+            fieldFilter: {
+              field: { fieldPath: "rankScore" },
+              op: "GREATER_THAN",
+              value: { integerValue: String(Math.trunc(filterScore)) }
+            }
+          };
+        }
+        const url = FB_DOCS + "/daily/" + encodeURIComponent(day) + ":runAggregationQuery";
+        const res = await fbFetch(url, {
+          method: "POST",
+          body: JSON.stringify({
+            structuredAggregationQuery: {
+              aggregations: [{ alias: "c", count: {} }],
+              structuredQuery: structuredQuery
+            }
+          })
+        });
+        if (!res.ok) throw new Error("agg");
+        const n = parseAggCount(await res.json());
+        if (!Number.isFinite(n)) throw new Error("agg");
+        return n;
+      }
+
+      async function computeMyRank(day, myScore, top50) {
+        try {
+          const better = await runCount(day, myScore);
+          return 1 + better;
+        } catch (_) {
+          const i = top50.findIndex((p) => p.playerId === fbLocalId);
+          if (i >= 0) return i + 1;
+          return 0;
+        }
+      }
+
+      async function refreshDailyRankSilent() {
+        if (!globalName) {
+          renderHomeDaily();
+          return;
+        }
+        try {
+          await ensureFbAuth();
+          const day = shanghaiDay();
+          const s = ensureDailyDay();
+          const hasScore = s.correct > 0 || s.wrong > 0;
+          if (!hasScore) {
+            dailyRankCache = { day: day, rank: 0, correct: 0, hasScore: false };
+            saveDailyRank();
+            renderHomeDaily();
+            return;
+          }
+          const score = rankScoreOf(s.correct, s.wrong);
+          let rank = 0;
+          try {
+            rank = 1 + await runCount(day, score);
+          } catch (_) {
+            const top = await queryTop50(day);
+            const i = top.findIndex((p) => p.playerId === fbLocalId);
+            rank = i >= 0 ? i + 1 : 0;
+          }
+          dailyRankCache = {
+            day: day,
+            rank: rank,
+            correct: s.correct,
+            hasScore: true
+          };
+          saveDailyRank();
+          renderHomeDaily();
+        } catch (_) {
+          renderHomeDaily();
+        }
+      }
+
+      function renderDailyShell() {
+        const day = shanghaiDay();
+        dailyDate.textContent = formatShanghaiDateLabel(day);
+        showDailyError(false);
+        showDailyNameErr("");
+        if (!globalName) {
+          dailyNameBox.classList.remove("hidden");
+          dailyBoardBox.classList.add("hidden");
+        } else {
+          dailyNameBox.classList.add("hidden");
+          dailyBoardBox.classList.remove("hidden");
+        }
+      }
+
+      function paintDailyBoard(top50, rank, total, mineCorrect, hasScore) {
+        dailyList.innerHTML = "";
+        top50.forEach((p, i) => {
+          const row = document.createElement("div");
+          row.className = "room-rank" + (p.playerId && p.playerId === fbLocalId ? " me" : "");
+          const n = document.createElement("span");
+          n.className = "room-rank-n";
+          n.textContent = String(i + 1);
+          const name = document.createElement("span");
+          name.className = "room-rank-name";
+          name.textContent = p.name || "—";
+          const score = document.createElement("span");
+          score.className = "room-rank-score";
+          score.textContent = String(p.correct);
+          row.appendChild(n);
+          row.appendChild(name);
+          row.appendChild(score);
+          dailyList.appendChild(row);
+        });
+        const onBoard = hasScore && rank >= 1 && rank <= DAILY_CAP;
+        if (!hasScore || !onBoard) {
+          dailyYou.textContent = "未进入前 10000 名";
+        } else {
+          dailyYou.textContent = "你的排名 · 第" + rank + "名 · " + mineCorrect + " 对";
+        }
+        if (Number.isFinite(total) && total > DAILY_LIST_LIMIT) {
+          dailyTotal.textContent = "共 " + total + " 人";
+          dailyTotal.classList.remove("hidden");
+        } else {
+          dailyTotal.textContent = "";
+          dailyTotal.classList.add("hidden");
+        }
+      }
+
+      async function loadDailyScreen() {
+        renderDailyShell();
+        if (!globalName) {
+          try {
+            await ensureFbAuth();
+            showDailyError(false);
+          } catch (_) {
+            showDailyError(true);
+          }
+          return;
+        }
+        try {
+          await ensureFbAuth();
+          const day = shanghaiDay();
+          const s = ensureDailyDay();
+          const hasScore = s.correct > 0 || s.wrong > 0;
+          const top50 = await queryTop50(day);
+          let total = 0;
+          let totalOk = false;
+          try {
+            total = await runCount(day, null);
+            totalOk = true;
+          } catch (_) {}
+          let rank = 0;
+          if (hasScore) {
+            rank = await computeMyRank(day, rankScoreOf(s.correct, s.wrong), top50);
+          }
+          dailyRankCache = {
+            day: day,
+            rank: rank,
+            correct: s.correct,
+            hasScore: hasScore
+          };
+          saveDailyRank();
+          paintDailyBoard(top50, rank, totalOk ? total : 0, s.correct, hasScore);
+          showDailyError(false);
+          renderHomeDaily();
+        } catch (_) {
+          showDailyError(true);
+        }
+      }
+
+      function openDaily() {
+        phase = "daily";
+        renderDailyShell();
+        showScreen(daily);
+        loadDailyScreen();
+      }
+
+      async function submitDailyName() {
+        if (dailyNameBusy || globalName) return;
+        const name = normalizeGlobalName(dailyNameInput.value);
+        if (!name) {
+          showDailyNameErr("请输入2–8个字，中文、字母或数字");
+          return;
+        }
+        dailyNameBusy = true;
+        showDailyNameErr("");
+        showDailyError(false);
+        try {
+          await ensureFbAuth();
+          const result = await claimUsername(name);
+          if (result === "taken") {
+            showDailyNameErr("这个名字已经有人用了");
+            return;
+          }
+          saveGlobalName(name);
+          renderDailyShell();
+          renderHomeDaily();
+          await loadDailyScreen();
+        } catch (_) {
+          showDailyError(true);
+        } finally {
+          dailyNameBusy = false;
+        }
+      }
+
       function showScreen(el) {
         home.classList.remove("active");
         game.classList.remove("active");
@@ -1916,9 +2569,11 @@
         records.classList.remove("active");
         recordDetail.classList.remove("active");
         room.classList.remove("active");
+        daily.classList.remove("active");
         el.classList.add("active");
         if (el === home) {
           renderHomeHint();
+          refreshDailyRankSilent();
         }
       }
 
@@ -2191,6 +2846,7 @@
           else roomWrong += 1;
           publishPresence();
         }
+        bumpDaily(ok);
         enterReady(false);
       }
 
@@ -2245,6 +2901,30 @@
         e.stopPropagation();
         phase = "settings";
         showScreen(settings);
+      });
+
+      dailyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openDaily();
+      });
+
+      dailyBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goHome();
+      });
+
+      dailyNameOk.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        submitDailyName();
+      });
+
+      dailyNameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitDailyName();
+        }
       });
 
       recordsBtn.addEventListener("click", (e) => {
@@ -2501,6 +3181,8 @@
           if (phase === "home") return;
           if (phase === "ready" || phase === "flash" || phase === "speak" || phase === "answer") {
             leaveGame();
+          } else if (phase === "daily") {
+            goHome();
           } else if (phase === "recordDetail") {
             viewingId = null;
             openRecords();
@@ -2545,6 +3227,8 @@
       });
 
       renderSettings();
+      renderHomeDaily();
+      refreshDailyRankSilent();
 
       if ("serviceWorker" in navigator) {
         const isSecure =
