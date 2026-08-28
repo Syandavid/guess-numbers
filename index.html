@@ -92,11 +92,7 @@
       .group-chip { width: 40px; height: 40px; font-size: 16px; }
       .replay-btn { font-size: 16px; padding: 8px 18px; }
       .phase-text { font-size: clamp(40px, 16vh, 72px); }
-      .home-actions {
-        flex-direction: row;
-        width: min(100%, 520px);
-      }
-      .home-pair { width: auto; flex: 1; }
+      .home-actions { width: min(100%, 400px); }
       .start-btn, .ghost-btn { font-size: 20px; padding: 12px 20px; }
       #room {
         padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
@@ -128,9 +124,7 @@
       #daily .room-rank { padding: 6px 8px; font-size: 14px; }
       .daily-name-box, .daily-board-box, #daily .room-board, #daily .settings-title { width: min(100%, 520px); }
 
-      .home-actions { flex-wrap: wrap; }
-      #challengeBtn { flex: 1 1 100%; }
-      #homeBlock { flex: 1 1 100%; }
+      #homeBlock { grid-column: 1 / -1; }
       #challenge {
         padding-top: calc(env(safe-area-inset-top, 0px) + 36px);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -188,7 +182,7 @@
     }
 
     .home-hint {
-      margin-top: 16px;
+      margin-top: 12px;
       color: var(--muted);
       font-size: 15px;
       letter-spacing: 0.06em;
@@ -220,9 +214,14 @@
 
     .home-actions {
       width: min(100%, 320px);
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
+    }
+    .home-actions > .start-btn,
+    .home-actions > #homeBlock,
+    .home-actions > #challengeBtn {
+      grid-column: 1 / -1;
     }
 
     .start-btn, .ghost-btn {
@@ -251,8 +250,8 @@
 
     .exit-btn {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 8px);
-      left: calc(env(safe-area-inset-left, 0px) + 12px);
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      left: calc(env(safe-area-inset-left, 0px) + 8px);
       z-index: 2;
       appearance: none;
       border: none;
@@ -311,15 +310,20 @@
 
     .session-scores {
       position: absolute;
-      top: calc(env(safe-area-inset-top, 0px) + 14px);
-      right: calc(env(safe-area-inset-right, 0px) + 16px);
+      top: calc(env(safe-area-inset-top, 0px) + 16px);
+      left: 88px;
+      right: 88px;
       z-index: 2;
       color: var(--muted);
       font-variant-numeric: tabular-nums;
       font-size: 15px;
       font-weight: 600;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.12em;
+      text-align: center;
       pointer-events: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     #game.answering .stage { padding-bottom: 220px; }
@@ -480,12 +484,8 @@
       user-select: text;
     }
 
-    .home-pair {
-      display: flex;
-      gap: 12px;
-      width: 100%;
-    }
-    .home-pair .ghost-btn { flex: 1; width: auto; }
+    .home-pair { display: contents; }
+    .home-pair .ghost-btn { width: auto; }
 
     #room {
       padding: calc(env(safe-area-inset-top, 0px) + 56px) 24px calc(env(safe-area-inset-bottom, 0px) + 32px);
@@ -3371,6 +3371,12 @@
         }
         if (gameMode === "challenge") {
           sessionScoresEl.textContent = "挑战";
+          sessionScoresEl.classList.add("room-hud");
+          sessionScoresEl.classList.remove("hidden");
+          return;
+        }
+        if (gameMode === "daily") {
+          sessionScoresEl.textContent = "日榜";
           sessionScoresEl.classList.add("room-hud");
           sessionScoresEl.classList.remove("hidden");
           return;
