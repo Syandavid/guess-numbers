@@ -3400,66 +3400,127 @@
         lose: "sfx/lose.wav",
         record: "sfx/record.wav"
       };
-      const sfxBank = {};
-      let sfxReady = false;
-      function makeSfx(src) {
-        const a = new Audio(src);
-        a.preload = "auto";
-        a.playsInline = true;
-        a.setAttribute("playsinline", "true");
-        a.volume = 1;
-        return a;
-      }
-      function ensureSfxBank() {
-        if (sfxReady) return;
-        Object.keys(SFX_FILES).forEach(function (k) {
-          sfxBank[k] = makeSfx(SFX_FILES[k]);
-        });
-        sfxReady = true;
-      }
+      let sfxCtx = null;
+      let sfxBuf = {};
+      let sfxLoading = false;
+      let sfxTickSrc = null;
+      let sfxTickOsc = [];
       function armAudio() {
-        ensureSfxBank();
-        Object.keys(sfxBank).forEach(function (k) {
-          const a = sfxBank[k];
-          if (!a || a._armed) return;
-          a._armed = true;
-          try {
-            a.muted = true;
-            const p = a.play();
-            if (p && p.then) {
-              p.then(function () {
-                if (a.muted) {
-                  a.pause();
-                  a.currentTime = 0;
-                  a.muted = false;
-                }
-              }).catch(function () { a.muted = false; });
-            } else {
-              a.pause();
-              a.currentTime = 0;
-              a.muted = false;
-            }
-          } catch (_) { a.muted = false; }
+        try {
+          const C = window.AudioContext || window.webkitAudioContext;
+          if (!C) return;
+          if (!sfxCtx) sfxCtx = new C();
+          if (sfxCtx.state === "suspended") sfxCtx.resume();
+          if (sfxCtx.state !== "running") {
+            const o = sfxCtx.createOscillator();
+            const g = sfxCtx.createGain();
+            g.gain.value = 0.12;
+            o.frequency.value = 880;
+            o.connect(g);
+            g.connect(sfxCtx.destination);
+            o.start(0);
+            o.stop(sfxCtx.currentTime + 0.08);
+          }
+        } catch (_) {}
+        if (!sfxCtx || sfxLoading) return;
+        sfxLoading = true;
+        Object.keys(SFX_FILES).forEach(function (k) {
+          fetch(SFX_FILES[k]).then(function (r) { return r.arrayBuffer(); }).then(function (arr) {
+            function ok(buf) { sfxBuf[k] = buf; }
+            try {
+              const p = sfxCtx.decodeAudioData(arr.slice(0), ok, function () {});
+              if (p && p.then) p.then(ok).catch(function () {});
+            } catch (_) {}
+          }).catch(function () {});
         });
       }
       function stopTicks() {
-        const a = sfxBank.tick;
-        if (!a) return;
-        try { a.pause(); a.currentTime = 0; } catch (_) {}
+        if (sfxTickSrc) {
+          try { sfxTickSrc.stop(); } catch (_) {}
+          sfxTickSrc = null;
+        }
+        sfxTickOsc.forEach(function (o) { try { o.stop(); } catch (_) {} });
+        sfxTickOsc = [];
+      }
+      function sfxTone(freq, t0, dur, type, vol, slide) {
+        if (!sfxCtx) return null;
+        const o = sfxCtx.createOscillator();
+        const g = sfxCtx.createGain();
+        o.type = type || "triangle";
+        o.frequency.setValueAtTime(freq, t0);
+        if (slide) o.frequency.linearRampToValueAtTime(slide, t0 + dur);
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol || 0.28, t0 + 0.012);
+        g.gain.linearRampToValueAtTime(0, t0 + dur);
+        o.connect(g);
+        g.connect(sfxCtx.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.02);
+        return o;
+      }
+      function sfxOsc(kind) {
+        const t0 = sfxCtx.currentTime + 0.01;
+        if (kind === "ready") {
+          sfxTone(523.25, t0, 0.18, "triangle", 0.32);
+          sfxTone(659.25, t0 + 0.14, 0.2, "triangle", 0.34);
+          sfxTone(783.99, t0 + 0.3, 0.48, "triangle", 0.36);
+        } else if (kind === "tick") {
+          stopTicks();
+          for (let i = 0; i < 6; i++) {
+            const o = sfxTone(i % 2 ? 1108 : 1479, t0 + i * 0.5, 0.055, "square", 0.2);
+            if (o) sfxTickOsc.push(o);
+          }
+        } else if (kind === "reveal") {
+          sfxTone(392, t0, 0.22, "sine", 0.24, 784);
+          sfxTone(784, t0 + 0.08, 0.36, "triangle", 0.28);
+          sfxTone(1175, t0 + 0.18, 0.4, "sine", 0.2);
+        } else if (kind === "correct") {
+          sfxTone(523.25, t0, 0.14, "triangle", 0.3);
+          sfxTone(659.25, t0 + 0.11, 0.14, "triangle", 0.3);
+          sfxTone(783.99, t0 + 0.22, 0.16, "triangle", 0.32);
+          sfxTone(1046.5, t0 + 0.36, 0.4, "sine", 0.28);
+        } else if (kind === "wrong") {
+          sfxTone(220, t0, 0.3, "square", 0.22, 130);
+          sfxTone(164, t0 + 0.18, 0.34, "triangle", 0.18, 98);
+        } else if (kind === "win") {
+          [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5].forEach(function (f, i) {
+            sfxTone(f, t0 + i * 0.11, 0.3, "triangle", 0.32);
+          });
+          sfxTone(1568, t0 + 0.72, 0.55, "sine", 0.22);
+        } else if (kind === "lose") {
+          sfxTone(392, t0, 0.22, "triangle", 0.26);
+          sfxTone(311.13, t0 + 0.2, 0.28, "triangle", 0.24);
+          sfxTone(246.94, t0 + 0.44, 0.55, "sine", 0.22, 185);
+        } else if (kind === "record") {
+          sfxTone(659.25, t0, 0.12, "triangle", 0.3);
+          sfxTone(783.99, t0 + 0.1, 0.12, "triangle", 0.3);
+          sfxTone(987.77, t0 + 0.2, 0.12, "triangle", 0.32);
+          sfxTone(1318.5, t0 + 0.32, 0.22, "sine", 0.28);
+          sfxTone(1568, t0 + 0.48, 0.5, "sine", 0.24);
+        }
       }
       function playSfx(kind) {
-        ensureSfxBank();
-        const a = sfxBank[kind];
-        if (!a) return;
-        try {
+        armAudio();
+        if (!sfxCtx) return;
+        function go() {
           if (kind !== "tick") stopTicks();
-          a.muted = false;
-          a.volume = 1;
-          try { a.pause(); } catch (_) {}
-          a.currentTime = 0;
-          const p = a.play();
-          if (p && p.catch) p.catch(function () {});
-        } catch (_) {}
+          if (sfxBuf[kind]) {
+            try {
+              const src = sfxCtx.createBufferSource();
+              const g = sfxCtx.createGain();
+              g.gain.value = 1;
+              src.buffer = sfxBuf[kind];
+              src.connect(g);
+              g.connect(sfxCtx.destination);
+              src.start(0);
+              if (kind === "tick") sfxTickSrc = src;
+              return;
+            } catch (_) {}
+          }
+          sfxOsc(kind);
+        }
+        if (sfxCtx.state === "suspended") sfxCtx.resume().then(go);
+        else go();
       }
       function playRoundResult(ok, madeBest) {
         if (gameMode === "challenge") playSfx(ok ? "win" : "lose");
@@ -3834,7 +3895,9 @@
         startGame("daily");
       }
 
-      document.addEventListener("pointerdown", armAudio, { passive: true });
+      ["pointerdown", "touchstart", "click"].forEach(function (ev) {
+        document.addEventListener(ev, armAudio, { capture: true, passive: true });
+      });
       startBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         armAudio();
