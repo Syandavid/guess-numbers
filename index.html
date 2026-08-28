@@ -150,6 +150,29 @@
       text-align: center;
     }
 
+    .home-best {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .best-banner {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 52px);
+      left: 0;
+      right: 0;
+      z-index: 2;
+      color: #22C55E;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-align: center;
+      pointer-events: none;
+    }
+
     .home-actions {
       width: min(100%, 320px);
       display: flex;
@@ -554,6 +577,7 @@
       <div class="home-spacer"></div>
       <h1 class="title">猜数字</h1>
       <p class="home-hint" id="homeHint"></p>
+      <p class="home-best" id="homeBest"></p>
       <div class="home-spacer"></div>
       <div class="home-actions">
         <button type="button" class="start-btn" id="startBtn">开始</button>
@@ -639,6 +663,7 @@
     <section id="game" class="screen" aria-label="游戏">
       <button type="button" class="exit-btn" id="exitBtn">退出</button>
       <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
+      <div id="bestBanner" class="best-banner hidden" aria-hidden="true">新纪录</div>
       <div class="stage">
         <div id="readyText" class="phase-text ready hidden">准备</div>
         <div id="flashText" class="numbers hidden"></div>
@@ -684,6 +709,10 @@
         <div class="detail-item" id="detailRankBlock">
           <span class="detail-k">排名</span>
           <span class="detail-v" id="detailRank"></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-k">纪录</span>
+          <span class="detail-v" id="detailBest"></span>
         </div>
       </div>
       <button type="button" class="ghost-btn danger-ghost" id="deleteRecordBtn">删除本局</button>
@@ -732,6 +761,9 @@
       const mixMaxLabel = document.getElementById("mixMaxLabel");
       const flashLabel = document.getElementById("flashLabel");
       const homeHint = document.getElementById("homeHint");
+      const homeBest = document.getElementById("homeBest");
+      const bestBanner = document.getElementById("bestBanner");
+      const detailBest = document.getElementById("detailBest");
       const sizeRange = document.getElementById("sizeRange");
       const sizeLabel = document.getElementById("sizeLabel");
       const stageEl = document.querySelector("#game .stage");
@@ -756,10 +788,12 @@
 
       const STORE = "guess-numbers-settings";
       const SESSIONS_KEY = "guess-numbers-sessions";
+      const BEST_KEY = "guess-numbers-best";
       const MAX_SESSIONS = 200;
 
       let settingsState = loadSettings();
       let sessions = loadSessions();
+      let personalBest = loadBest();
       let currentSession = null;
       let viewingId = null;
       let confirmResolve = null;
@@ -858,6 +892,69 @@
         try {
           localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
         } catch (_) {}
+      }
+
+      function loadBest() {
+        try {
+          const raw = localStorage.getItem(BEST_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          const digits = Number(parsed && parsed.digits);
+          const flashMs = Number(parsed && parsed.flashMs);
+          if (!Number.isInteger(digits) || digits < 1 || digits > 15) return null;
+          if (!Number.isFinite(flashMs) || flashMs < 50 || flashMs > 1000) return null;
+          return { digits: digits, flashMs: flashMs };
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function saveBest() {
+        try {
+          if (personalBest) localStorage.setItem(BEST_KEY, JSON.stringify(personalBest));
+        } catch (_) {}
+      }
+
+      function formatFlashCompact(ms) {
+        const n = Number(ms);
+        if (!Number.isFinite(n)) return "0 秒";
+        const t = (n / 1000).toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+        return t + " 秒";
+      }
+
+      function isBetterBest(digits, flashMs, cur) {
+        if (!cur) return true;
+        if (digits > cur.digits) return true;
+        if (digits < cur.digits) return false;
+        return flashMs < cur.flashMs;
+      }
+
+      function hideBestBanner() {
+        bestBanner.classList.add("hidden");
+        bestBanner.setAttribute("aria-hidden", "true");
+      }
+
+      function showBestBanner() {
+        bestBanner.textContent = "新纪录";
+        bestBanner.classList.remove("hidden");
+        bestBanner.setAttribute("aria-hidden", "false");
+      }
+
+      function considerBest() {
+        const digits = (lastNumber || "").length;
+        if (!digits) return;
+        const flashMs = currentSession && currentSession.settings
+          ? currentSession.settings.flashMs
+          : settingsState.flashMs;
+        if (!isBetterBest(digits, flashMs, personalBest)) return;
+        personalBest = { digits: digits, flashMs: flashMs };
+        saveBest();
+        if (currentSession) {
+          currentSession.newBest = true;
+          currentSession.bestDigits = digits;
+          currentSession.bestFlashMs = flashMs;
+        }
+        showBestBanner();
       }
 
       function pad2(n) {
@@ -1000,7 +1097,8 @@
           rounds: 0,
           correct: 0,
           wrong: 0,
-          groups: Array.from({ length: n }, () => 0)
+          groups: Array.from({ length: n }, () => 0),
+          newBest: false
         };
       }
 
@@ -1042,12 +1140,21 @@
         return settingsState.playerCount === 1 ? "单人" : settingsState.playerCount + " 人";
       }
 
+      function renderHomeBest() {
+        if (!personalBest) {
+          homeBest.textContent = "打对一题，留下纪录";
+          return;
+        }
+        homeBest.textContent = "目前 " + personalBest.digits + " 位 · " + formatFlashCompact(personalBest.flashMs);
+      }
+
       function renderHomeHint() {
         if (!sessions.length) {
           homeHint.textContent = "共 0 局";
-          return;
+        } else {
+          homeHint.textContent = sessionRowText(sessions[0]);
         }
-        homeHint.textContent = sessionRowText(sessions[0]);
+        renderHomeBest();
       }
 
       function renderRecords() {
@@ -1084,6 +1191,11 @@
         detailDiff.textContent = sessionDifficulty(s);
         detailScore.textContent = sessionScoreText(s);
         detailRank.textContent = sessionRankText(s);
+        if (s.newBest && s.bestDigits) {
+          detailBest.textContent = "本局新纪录 · " + s.bestDigits + " 位 · " + formatFlashCompact(s.bestFlashMs);
+        } else {
+          detailBest.textContent = "本局无新纪录";
+        }
         showScreen(recordDetail);
       }
 
@@ -1125,6 +1237,9 @@
         records.classList.remove("active");
         recordDetail.classList.remove("active");
         el.classList.add("active");
+        if (el === home) {
+          renderHomeHint();
+        }
       }
 
       function setAppHeight() {
@@ -1335,6 +1450,7 @@
 
       function enterFlash(keep) {
         phase = "flash";
+        hideBestBanner();
         setAnswerControls(false);
         if (!keep) lastNumber = randomNumber();
         flashText.classList.remove("answer");
@@ -1375,6 +1491,8 @@
           if (ok) currentSession.correct += 1;
           else currentSession.wrong += 1;
         }
+        const playerCount = currentSession ? currentSession.playerCount : settingsState.playerCount;
+        if (ok && playerCount === 1) considerBest();
         enterReady(false);
       }
 
@@ -1395,6 +1513,7 @@
       function goHome() {
         clearTimers();
         setAnswerControls(false);
+        hideBestBanner();
         phase = "home";
         showScreen(home);
         readyText.classList.add("hidden");
@@ -1411,6 +1530,7 @@
 
       function startGame() {
         sessionScores = emptyGroups();
+        hideBestBanner();
         beginSession();
         showScreen(game);
         enterReady(false);
