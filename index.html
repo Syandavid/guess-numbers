@@ -1404,6 +1404,7 @@
       let readyTimer = null;
       let flashTimer = null;
       let inputTimer = null;
+      let resultTimer = null;
       let pollTimer = null;
       let typedLocked = false;
       let challengeState = null;
@@ -1616,11 +1617,11 @@
 
       function considerBest() {
         const digits = (lastNumber || "").length;
-        if (!digits) return;
+        if (!digits) return false;
         const flashMs = currentSession && currentSession.settings
           ? currentSession.settings.flashMs
           : settingsState.flashMs;
-        if (!isBetterBest(digits, flashMs, personalBest)) return;
+        if (!isBetterBest(digits, flashMs, personalBest)) return false;
         personalBest = { digits: digits, flashMs: flashMs };
         saveBest();
         if (currentSession) {
@@ -1629,6 +1630,7 @@
           currentSession.bestFlashMs = flashMs;
         }
         showBestBanner();
+        return true;
       }
 
       function pad2(n) {
@@ -3040,6 +3042,7 @@
           showOnly(speakText);
           renderSessionScores();
           vibrate();
+          playSfx("tick");
         }
       }
       function enterRoomReveal() {
@@ -3054,6 +3057,8 @@
         requestAnimationFrame(applyNumberSize);
         setAnswerControls(true);
         vibrate();
+        stopTicks();
+        playSfx("reveal");
       }
       async function submitRoomAnswer(answer, ok) {
         if (!roomCode || !roomDoc || !fbLocalId) return;
@@ -3067,7 +3072,9 @@
           roomAnswers.push({ _id: fbLocalId, roundId: roomDoc.roundId, answer: String(answer || ""), ok: !!ok, t: Date.now() });
           hideRoomError();
         } catch (_) { typedLocked = false; showRoomError(true); return; }
-        if (ok) considerBest();
+        const madeBest = !!(ok && considerBest());
+        stopTicks();
+        playRoundResult(ok, madeBest);
         setAnswerControls(true);
         maybeAdvanceRoom();
         pollRoomOnce();
@@ -3260,6 +3267,7 @@
         setAnswerControls(true);
         renderSessionScores();
         vibrate();
+        playSfx("tick");
         focusType();
       }
       function enterTypedReveal(ok) {
@@ -3269,10 +3277,11 @@
           if (ok) currentSession.correct += 1;
           else currentSession.wrong += 1;
         }
-        if (countThis && ok) considerBest();
+        const madeBest = countThis && ok ? considerBest() : false;
         if (countThis && gameMode === "daily") bumpDaily(ok);
         if (countThis && gameMode === "challenge" && ok) onChallengeBeat();
         phase = "answer";
+        stopTicks();
         flashText.classList.add("answer");
         flashText.textContent = lastNumber;
         showOnly(flashText);
@@ -3280,6 +3289,8 @@
         requestAnimationFrame(applyNumberSize);
         renderSessionScores();
         vibrate();
+        playSfx("reveal");
+        playRoundResult(ok, madeBest);
       }
       function submitTyped() {
         if (typedLocked || phase !== "input") return;
@@ -3366,6 +3377,11 @@
           clearTimeout(inputTimer);
           inputTimer = null;
         }
+        if (resultTimer !== null) {
+          clearTimeout(resultTimer);
+          resultTimer = null;
+        }
+        stopTicks();
       }
 
       function vibrate() {
@@ -3373,6 +3389,89 @@
           if (navigator.vibrate) navigator.vibrate(12);
         } catch (_) {}
       }
+
+      let audioCtx = null;
+      let tickNodes = [];
+      function armAudio() {
+        try {
+          const C = window.AudioContext || window.webkitAudioContext;
+          if (!C) return;
+          if (!audioCtx) audioCtx = new C();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+        } catch (_) {}
+      }
+      function stopTicks() {
+        tickNodes.forEach(function (n) { try { n.stop(); } catch (_) {} });
+        tickNodes = [];
+      }
+      function sfxBeep(freq, t0, dur, type, peak, slide) {
+        if (!audioCtx) return null;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = type || "triangle";
+        o.frequency.setValueAtTime(freq, t0);
+        if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(peak || 0.1, t0 + 0.016);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.03);
+        return o;
+      }
+      function playSfx(kind) {
+        armAudio();
+        if (!audioCtx) return;
+        const t0 = audioCtx.currentTime + 0.01;
+        if (kind === "ready") {
+          sfxBeep(523.25, t0, 0.16, "triangle", 0.11);
+          sfxBeep(659.25, t0 + 0.14, 0.18, "triangle", 0.12);
+          sfxBeep(783.99, t0 + 0.3, 0.42, "triangle", 0.13);
+        } else if (kind === "tick") {
+          stopTicks();
+          for (let i = 0; i < 6; i++) {
+            const tt = t0 + i * 0.5;
+            const freq = i % 2 === 0 ? 1568 : 1174;
+            const o = sfxBeep(freq, tt, 0.045, "square", 0.055);
+            if (o) tickNodes.push(o);
+          }
+        } else if (kind === "reveal") {
+          sfxBeep(392, t0, 0.22, "sine", 0.08, 784);
+          sfxBeep(784, t0 + 0.08, 0.35, "triangle", 0.1);
+          sfxBeep(1175, t0 + 0.18, 0.4, "sine", 0.07);
+        } else if (kind === "correct") {
+          sfxBeep(523.25, t0, 0.14, "triangle", 0.12);
+          sfxBeep(659.25, t0 + 0.11, 0.14, "triangle", 0.12);
+          sfxBeep(783.99, t0 + 0.22, 0.16, "triangle", 0.13);
+          sfxBeep(1046.5, t0 + 0.36, 0.38, "sine", 0.11);
+        } else if (kind === "wrong") {
+          sfxBeep(220, t0, 0.28, "square", 0.07, 130);
+          sfxBeep(164, t0 + 0.18, 0.32, "sawtooth", 0.05, 98);
+        } else if (kind === "win") {
+          const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5, 1318.5];
+          notes.forEach(function (f, i) {
+            sfxBeep(f, t0 + i * 0.11, 0.28, "triangle", 0.13);
+          });
+          sfxBeep(1568, t0 + 0.72, 0.55, "sine", 0.08);
+        } else if (kind === "lose") {
+          sfxBeep(392, t0, 0.22, "triangle", 0.1);
+          sfxBeep(311.13, t0 + 0.2, 0.28, "triangle", 0.09);
+          sfxBeep(246.94, t0 + 0.44, 0.55, "sine", 0.08, 185);
+        } else if (kind === "record") {
+          sfxBeep(659.25, t0, 0.12, "triangle", 0.12);
+          sfxBeep(783.99, t0 + 0.1, 0.12, "triangle", 0.12);
+          sfxBeep(987.77, t0 + 0.2, 0.12, "triangle", 0.13);
+          sfxBeep(1318.5, t0 + 0.32, 0.22, "sine", 0.11);
+          sfxBeep(1568, t0 + 0.48, 0.5, "sine", 0.09);
+        }
+      }
+      function playRoundResult(ok, madeBest) {
+        if (gameMode === "challenge") playSfx(ok ? "win" : "lose");
+        else if (ok && madeBest) playSfx("record");
+        else playSfx(ok ? "correct" : "wrong");
+      }
+
 
       function showOnly(el) {
         readyText.classList.add("hidden");
@@ -3582,11 +3681,13 @@
       function enterReady(keep) {
         roundIsReplay = !!keep;
         clearTimers();
+        stopTicks();
         setAnswerControls(false);
         phase = "ready";
         showOnly(readyText);
         renderSessionScores();
         vibrate();
+        playSfx("ready");
         readyTimer = setTimeout(() => {
           readyTimer = null;
           enterFlash(keep);
@@ -3617,10 +3718,12 @@
         showOnly(speakText);
         renderSessionScores();
         vibrate();
+        playSfx("tick");
       }
 
       function enterAnswer() {
         phase = "answer";
+        stopTicks();
         flashText.classList.add("answer");
         flashText.textContent = lastNumber;
         showOnly(flashText);
@@ -3628,6 +3731,7 @@
         requestAnimationFrame(applyNumberSize);
         renderSessionScores();
         vibrate();
+        playSfx("reveal");
       }
 
       function recordSolo(ok) {
@@ -3643,8 +3747,14 @@
           else currentSession.wrong += 1;
         }
         const playerCount = currentSession ? currentSession.playerCount : settingsState.playerCount;
-        if (ok && playerCount === 1) considerBest();
-        enterReady(false);
+        const madeBest = !!(ok && playerCount === 1 && considerBest());
+        playRoundResult(ok, madeBest);
+        if (resultTimer) clearTimeout(resultTimer);
+        resultTimer = setTimeout(function () {
+          resultTimer = null;
+          if (!game.classList.contains("active")) return;
+          enterReady(false);
+        }, madeBest ? 720 : 520);
       }
 
       function commitMulti() {
@@ -3695,6 +3805,7 @@
       }
 
       function startGame(mode) {
+        armAudio();
         gameMode = mode || (settingsState.joinDaily ? "daily" : "solo");
         if (gameMode === "daily") {
           settingsState.joinDaily = true;
@@ -3729,8 +3840,10 @@
         startGame("daily");
       }
 
+      document.addEventListener("pointerdown", armAudio, { passive: true });
       startBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        armAudio();
         startGame(settingsState.joinDaily ? "daily" : "solo");
       });
 
