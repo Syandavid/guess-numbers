@@ -197,12 +197,93 @@
     }
     .numbers.answer { color: #22C55E; }
 
-    .replay-btn {
+    .session-scores {
       position: absolute;
-      left: 50%;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
-      transform: translateX(-50%);
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
+      right: calc(env(safe-area-inset-right, 0px) + 16px);
       z-index: 2;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      pointer-events: none;
+    }
+
+    #game.answering .stage { padding-bottom: 220px; }
+
+    .answer-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+    }
+
+    .judge-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .judge-btn {
+      flex: 1;
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .judge-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+    .group-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+    .group-chip {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      appearance: none;
+      border: 2px solid rgba(255,255,255,0.35);
+      background: transparent;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+    }
+    .group-chip.active {
+      background: #22C55E;
+      border-color: #22C55E;
+      color: #000;
+    }
+    .group-chip:active { transform: scale(0.96); }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .replay-btn {
       appearance: none;
       border: 1px solid rgba(255,255,255,0.28);
       background: rgba(0,0,0,0.5);
@@ -285,6 +366,8 @@
     .ghost-btn:focus-visible,
     .exit-btn:focus-visible,
     .replay-btn:focus-visible,
+    .judge-btn:focus-visible,
+    .group-chip:focus-visible,
     .chip:focus-visible,
     input[type="range"]:focus-visible {
       outline: 2px solid var(--orange);
@@ -352,6 +435,21 @@
       </div>
       <div class="setting">
         <div class="setting-label">
+          <span>人数</span>
+          <span class="setting-value" id="playerLabel">单人</span>
+        </div>
+        <div class="chips" id="playerChips">
+          <button type="button" class="chip" data-players="1">单人</button>
+          <button type="button" class="chip" data-players="2">2</button>
+          <button type="button" class="chip" data-players="3">3</button>
+          <button type="button" class="chip" data-players="4">4</button>
+          <button type="button" class="chip" data-players="5">5</button>
+          <button type="button" class="chip" data-players="6">6</button>
+          <button type="button" class="chip" data-players="7">7</button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="setting-label">
           <span>数字大小</span>
           <span class="setting-value" id="sizeLabel">100%</span>
         </div>
@@ -366,12 +464,23 @@
 
     <section id="game" class="screen" aria-label="游戏">
       <button type="button" class="exit-btn" id="exitBtn">退出</button>
+      <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
       <div class="stage">
         <div id="readyText" class="phase-text ready hidden">准备</div>
         <div id="flashText" class="numbers hidden"></div>
         <div id="speakText" class="phase-text speak hidden">请说</div>
       </div>
-      <button type="button" class="replay-btn hidden" id="replayBtn">重玩</button>
+      <div id="answerBar" class="answer-bar hidden">
+        <div id="soloRow" class="judge-row hidden">
+          <button type="button" class="judge-btn" id="yesBtn">对</button>
+          <button type="button" class="judge-btn" id="noBtn">错</button>
+        </div>
+        <div id="groupRow" class="group-row hidden"></div>
+        <div class="action-row">
+          <button type="button" class="replay-btn" id="replayBtn">重玩</button>
+          <button type="button" class="replay-btn" id="nextBtn">下一轮</button>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -388,6 +497,14 @@
       const flashText = document.getElementById("flashText");
       const speakText = document.getElementById("speakText");
       const replayBtn = document.getElementById("replayBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const answerBar = document.getElementById("answerBar");
+      const soloRow = document.getElementById("soloRow");
+      const groupRow = document.getElementById("groupRow");
+      const sessionScoresEl = document.getElementById("sessionScores");
+      const playerLabel = document.getElementById("playerLabel");
       const app = document.getElementById("app");
       const flashRange = document.getElementById("flashRange");
       const digitRange = document.getElementById("digitRange");
@@ -404,13 +521,16 @@
       const stageEl = document.querySelector("#game .stage");
 
       const STORE = "guess-numbers-settings";
-      const PRESET_MS = [200, 300, 400, 600, 800];
+      const STATS_KEY = "guess-numbers-stats";
 
       let settingsState = loadSettings();
+      let stats = loadStats();
       let phase = "home";
       let readyTimer = null;
       let flashTimer = null;
       let lastNumber = "";
+      let sessionScores = [0, 0, 0, 0, 0, 0, 0];
+      let groupSelected = [];
 
       function loadSettings() {
         try {
@@ -420,10 +540,17 @@
             const flashMs = clampMs(parsed.flashMs);
             const digits = normalizeDigits(parsed.digits);
             const mix = normalizeMix(parsed.mixMin, parsed.mixMax);
-            return { flashMs: flashMs, digits: digits, mixMin: mix.min, mixMax: mix.max, sizePct: clampSize(parsed.sizePct) };
+            return {
+              flashMs: flashMs,
+              digits: digits,
+              mixMin: mix.min,
+              mixMax: mix.max,
+              sizePct: clampSize(parsed.sizePct),
+              playerCount: clampPlayers(parsed.playerCount)
+            };
           }
         } catch (_) {}
-        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100 };
+        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100, playerCount: 1 };
       }
 
       function clampMs(n) {
@@ -436,6 +563,12 @@
         n = Number(n);
         if (!Number.isFinite(n)) return 100;
         return Math.min(100, Math.max(50, Math.round(n / 5) * 5));
+      }
+
+      function clampPlayers(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return 1;
+        return Math.min(7, Math.max(1, Math.round(n)));
       }
 
       function clampDigit(n, fallback) {
@@ -467,11 +600,96 @@
         renderSettings();
       }
 
+      function todayStr() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return y + "-" + m + "-" + day;
+      }
+
+      function emptyGroups() {
+        return [0, 0, 0, 0, 0, 0, 0];
+      }
+
+      function normalizeGroups(g) {
+        const out = emptyGroups();
+        if (!Array.isArray(g)) return out;
+        for (let i = 0; i < 7; i++) {
+          const n = Number(g[i]);
+          out[i] = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+        }
+        return out;
+      }
+
+      function loadStats() {
+        const today = todayStr();
+        let maxDigits = 0;
+        let rolled = true;
+        let parsed = null;
+        try {
+          const raw = localStorage.getItem(STATS_KEY);
+          if (raw) parsed = JSON.parse(raw);
+        } catch (_) {
+          parsed = null;
+        }
+        if (parsed && typeof parsed === "object") {
+          const md = Number(parsed.maxDigits);
+          if (Number.isFinite(md) && md > 0) maxDigits = Math.floor(md);
+          if (parsed.date === today) {
+            rolled = false;
+            return {
+              date: today,
+              rounds: Math.max(0, Math.floor(Number(parsed.rounds) || 0)),
+              correct: Math.max(0, Math.floor(Number(parsed.correct) || 0)),
+              streak: Math.max(0, Math.floor(Number(parsed.streak) || 0)),
+              maxDigits: maxDigits,
+              groups: normalizeGroups(parsed.groups)
+            };
+          }
+        }
+        const fresh = {
+          date: today,
+          rounds: 0,
+          correct: 0,
+          streak: 0,
+          maxDigits: maxDigits,
+          groups: emptyGroups()
+        };
+        if (rolled) saveStatsObject(fresh);
+        return fresh;
+      }
+
+      function saveStatsObject(obj) {
+        try {
+          localStorage.setItem(STATS_KEY, JSON.stringify(obj));
+        } catch (_) {}
+      }
+
+      function saveStats() {
+        saveStatsObject(stats);
+        renderHomeHint();
+      }
+
+      function bumpMaxDigits() {
+        const len = (lastNumber || "").length;
+        if (len > stats.maxDigits) stats.maxDigits = len;
+      }
+
       function digitsLabel() {
         if (settingsState.digits === "mix") {
           return "随机 " + settingsState.mixMin + "–" + settingsState.mixMax + " 位";
         }
         return settingsState.digits + " 位";
+      }
+
+      function playerCountLabel() {
+        return settingsState.playerCount === 1 ? "单人" : settingsState.playerCount + " 人";
+      }
+
+      function renderHomeHint() {
+        homeHint.textContent =
+          "今日 " + stats.rounds + " 次 · 连对 " + stats.streak + " · 最长 " + stats.maxDigits + " 位";
       }
 
       function renderSettings() {
@@ -488,7 +706,8 @@
         digitLabel.textContent = digitsLabel();
         sizeRange.value = String(settingsState.sizePct);
         sizeLabel.textContent = settingsState.sizePct + "%";
-        homeHint.textContent = (settingsState.flashMs / 1000).toFixed(2) + " 秒 · " + digitsLabel() + " · " + settingsState.sizePct + "%";
+        playerLabel.textContent = playerCountLabel();
+        renderHomeHint();
         document.querySelectorAll("#sizePresets .chip").forEach((btn) => {
           btn.classList.toggle("active", Number(btn.dataset.size) === settingsState.sizePct);
         });
@@ -498,6 +717,9 @@
         document.querySelectorAll("#digitChips .chip").forEach((btn) => {
           const val = btn.dataset.digits === "mix" ? "mix" : Number(btn.dataset.digits);
           btn.classList.toggle("active", val === settingsState.digits);
+        });
+        document.querySelectorAll("#playerChips .chip").forEach((btn) => {
+          btn.classList.toggle("active", Number(btn.dataset.players) === settingsState.playerCount);
         });
       }
 
@@ -571,8 +793,68 @@
         return s;
       }
 
-      function setReplayVisible(on) {
-        replayBtn.classList.toggle("hidden", !on);
+      function stopBubble(e) {
+        e.stopPropagation();
+      }
+
+      function bindStop(el) {
+        el.addEventListener("pointerdown", stopBubble);
+        el.addEventListener("pointerup", stopBubble);
+        el.addEventListener("click", stopBubble);
+      }
+
+      function renderSessionScores() {
+        const n = settingsState.playerCount;
+        if (n < 2 || (phase !== "ready" && phase !== "flash" && phase !== "speak" && phase !== "answer")) {
+          sessionScoresEl.classList.add("hidden");
+          return;
+        }
+        sessionScoresEl.textContent = sessionScores.slice(0, n).join("  ");
+        sessionScoresEl.classList.remove("hidden");
+      }
+
+      function setAnswerControls(on) {
+        game.classList.toggle("answering", on);
+        answerBar.classList.toggle("hidden", !on);
+        if (!on) {
+          soloRow.classList.add("hidden");
+          groupRow.classList.add("hidden");
+          nextBtn.classList.add("hidden");
+          return;
+        }
+        const multi = settingsState.playerCount >= 2;
+        soloRow.classList.toggle("hidden", multi);
+        groupRow.classList.toggle("hidden", !multi);
+        nextBtn.classList.toggle("hidden", !multi);
+        if (multi) rebuildGroups();
+      }
+
+      function rebuildGroups() {
+        const n = settingsState.playerCount;
+        groupSelected = [];
+        groupRow.innerHTML = "";
+        for (let i = 0; i < n; i++) {
+          groupSelected.push(false);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "group-chip";
+          btn.textContent = String(i + 1);
+          btn.dataset.group = String(i);
+          btn.setAttribute("aria-label", "组 " + (i + 1));
+          btn.setAttribute("aria-pressed", "false");
+          groupRow.appendChild(btn);
+        }
+      }
+
+      function toggleGroup(i) {
+        if (phase !== "answer") return;
+        if (i < 0 || i >= settingsState.playerCount) return;
+        groupSelected[i] = !groupSelected[i];
+        const btn = groupRow.querySelector('[data-group="' + i + '"]');
+        if (btn) {
+          btn.classList.toggle("active", groupSelected[i]);
+          btn.setAttribute("aria-pressed", groupSelected[i] ? "true" : "false");
+        }
       }
 
       function applyNumberSize() {
@@ -605,9 +887,10 @@
 
       function enterReady(keep) {
         clearTimers();
-        setReplayVisible(false);
+        setAnswerControls(false);
         phase = "ready";
         showOnly(readyText);
+        renderSessionScores();
         vibrate();
         readyTimer = setTimeout(() => {
           readyTimer = null;
@@ -617,12 +900,13 @@
 
       function enterFlash(keep) {
         phase = "flash";
-        setReplayVisible(false);
+        setAnswerControls(false);
         if (!keep) lastNumber = randomNumber();
         flashText.classList.remove("answer");
         flashText.textContent = lastNumber;
         showOnly(flashText);
         applyNumberSize();
+        renderSessionScores();
         vibrate();
         flashTimer = setTimeout(() => {
           flashTimer = null;
@@ -632,8 +916,9 @@
 
       function enterSpeak() {
         phase = "speak";
-        setReplayVisible(false);
+        setAnswerControls(false);
         showOnly(speakText);
+        renderSessionScores();
         vibrate();
       }
 
@@ -643,21 +928,59 @@
         flashText.textContent = lastNumber;
         showOnly(flashText);
         applyNumberSize();
-        setReplayVisible(true);
+        setAnswerControls(true);
+        renderSessionScores();
         vibrate();
+      }
+
+      function recordSolo(ok) {
+        if (phase !== "answer") return;
+        stats.rounds += 1;
+        if (ok) {
+          stats.correct += 1;
+          stats.streak += 1;
+        } else {
+          stats.streak = 0;
+        }
+        bumpMaxDigits();
+        saveStats();
+        enterReady(false);
+      }
+
+      function commitMulti() {
+        if (phase !== "answer") return;
+        const n = settingsState.playerCount;
+        let allCorrect = n > 0;
+        for (let i = 0; i < n; i++) {
+          if (groupSelected[i]) {
+            sessionScores[i] += 1;
+            stats.groups[i] += 1;
+          } else {
+            allCorrect = false;
+          }
+        }
+        stats.rounds += 1;
+        stats.streak = allCorrect ? stats.streak + 1 : 0;
+        bumpMaxDigits();
+        saveStats();
+        renderSessionScores();
+        enterReady(false);
       }
 
       function goHome() {
         clearTimers();
-        setReplayVisible(false);
+        setAnswerControls(false);
         phase = "home";
         showScreen(home);
         readyText.classList.add("hidden");
         flashText.classList.add("hidden");
         speakText.classList.add("hidden");
+        sessionScoresEl.classList.add("hidden");
+        renderHomeHint();
       }
 
       function startGame() {
+        sessionScores = emptyGroups();
         showScreen(game);
         enterReady(false);
       }
@@ -736,13 +1059,19 @@
         saveSettings();
       });
 
+      document.getElementById("playerChips").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-players]");
+        if (!btn) return;
+        settingsState.playerCount = clampPlayers(btn.dataset.players);
+        saveSettings();
+      });
+
+      [exitBtn, replayBtn, nextBtn, yesBtn, noBtn, groupRow, answerBar].forEach(bindStop);
+
       exitBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         goHome();
-      });
-      exitBtn.addEventListener("pointerdown", (e) => {
-        e.stopPropagation();
       });
 
       replayBtn.addEventListener("click", (e) => {
@@ -751,21 +1080,36 @@
         if (phase !== "answer") return;
         enterReady(true);
       });
-      replayBtn.addEventListener("pointerdown", (e) => {
+
+      yesBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        recordSolo(true);
       });
-      replayBtn.addEventListener("pointerup", (e) => {
+
+      noBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
+        recordSolo(false);
+      });
+
+      nextBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        commitMulti();
+      });
+
+      groupRow.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = e.target.closest("[data-group]");
+        if (!btn) return;
+        toggleGroup(Number(btn.dataset.group));
       });
 
       game.addEventListener("pointerup", (e) => {
-        if (e.target === exitBtn || exitBtn.contains(e.target)) return;
-        if (e.target === replayBtn || replayBtn.contains(e.target)) return;
-        if (phase === "speak") {
-          enterAnswer();
-        } else if (phase === "answer") {
-          enterReady(false);
-        }
+        if (e.target.closest("#exitBtn, #answerBar, #yesBtn, #noBtn, #replayBtn, #nextBtn, #groupRow, #sessionScores")) return;
+        if (phase === "speak") enterAnswer();
       });
 
       document.addEventListener("keydown", (e) => {
@@ -775,18 +1119,38 @@
           goHome();
           return;
         }
-        if (e.key !== " " && e.key !== "Enter") return;
         if (e.repeat) return;
         const tag = (e.target && e.target.tagName) || "";
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+        if (phase === "answer") {
+          const multi = settingsState.playerCount >= 2;
+          if (multi && e.key >= "1" && e.key <= "7") {
+            e.preventDefault();
+            toggleGroup(Number(e.key) - 1);
+            return;
+          }
+          if (e.key === "y" || e.key === "Y" || e.key === "Enter") {
+            e.preventDefault();
+            if (multi) commitMulti();
+            else recordSolo(true);
+            return;
+          }
+          if (!multi && (e.key === "n" || e.key === "N")) {
+            e.preventDefault();
+            recordSolo(false);
+            return;
+          }
+          return;
+        }
+
         if (e.target && e.target.closest && e.target.closest("button")) return;
+        if (e.key !== " " && e.key !== "Enter") return;
         e.preventDefault();
         if (phase === "home") {
           startGame();
         } else if (phase === "speak") {
           enterAnswer();
-        } else if (phase === "answer") {
-          enterReady(false);
         }
       });
 
@@ -805,5 +1169,6 @@
       }
     })();
   </script>
+
 </body>
 </html>
