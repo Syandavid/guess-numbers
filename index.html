@@ -1219,7 +1219,7 @@
       <p class="daily-sub" id="accountHint">点上面的名字即可切换。新增是注册新名字；取回是用口令把已有名字装回这台手机。</p>
       <div class="daily-name-box">
         <input class="room-input" id="accountNameInput" type="text" maxlength="8" placeholder="你的名字" name="account-name" autocomplete="username" autocapitalize="off" spellcheck="false">
-        <input class="room-input" id="accountPinInput" type="password" maxlength="8" placeholder="口令 4–8 位" name="account-pin" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="accountPinInput" type="text" maxlength="8" placeholder="口令 4–8 位" name="account-pin" autocomplete="new-password" autocapitalize="off" spellcheck="false">
         <div class="account-actions">
           <button type="button" class="start-btn" id="accountAddBtn">新增</button>
           <button type="button" class="ghost-btn" id="accountReclaimBtn">取回</button>
@@ -2537,8 +2537,9 @@
         const userRes = await fbPatch("usernames/" + encodeURIComponent(name), {
           playerId: fsStr(fbLocalId)
         }, ["playerId"]);
-        if (!userRes.ok) throw new Error("net");
-        return "ok";
+        const userData = await userRes.json().catch(function () { return {}; });
+        if (userRes.ok || isNotFound(userRes, userData)) return "ok";
+        throw new Error("net");
       }
 
       async function patchDailyPlayer() {
@@ -3140,8 +3141,15 @@
             return;
           }
           if (owned === "nopin") {
-            logoutMsg = "注销失败：名字不存在";
-            return;
+            let stillThere = false;
+            try {
+              const userGot = await fbGet("usernames/" + encodeURIComponent(name));
+              stillThere = !!(userGot && userGot.ok);
+            } catch (_) {}
+            if (stillThere) {
+              logoutMsg = "注销失败：口令不对";
+              return;
+            }
           }
           const uid = fbLocalId;
           let oldPid = uidBefore || uid;
