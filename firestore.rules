@@ -5,7 +5,7 @@ service cloud.firestore {
     // nameLocks/{name}: { pin, playerId }  // never readable; write pin to prove ownership
     // daily/{yyyy-MM-dd}/players/{uid}: { playerId, name, correct, wrong, rankScore, t }
     // challenge/current: { flashMs, digits, holderId, holderName, heldSince }
-    // challenge/beats/{uid}: { t, name }
+    // challengeBeats/{uid}: { t, name }
     // rooms/{code}: { ownerId, ownerName, adminIds, antiCheat, answerSeconds, phase, roundId, number, flashMs, digits, flashAt, inputUntil, replay }
     // rooms/{code}/members/{uid}: { name, joinedAt }
     // rooms/{code}/answers/{uid}: { roundId, answer, ok, t }
@@ -81,8 +81,8 @@ service cloud.firestore {
         && (
           (request.resource.data.holderId == '' && request.resource.data.holderName == '系统')
           || (
-            exists(/databases/$(database)/documents/challenge/beats/$(request.resource.data.holderId))
-            && get(/databases/$(database)/documents/challenge/beats/$(request.resource.data.holderId)).data.name == request.resource.data.holderName
+            exists(/databases/$(database)/documents/challengeBeats/$(request.resource.data.holderId))
+            && get(/databases/$(database)/documents/challengeBeats/$(request.resource.data.holderId)).data.name == request.resource.data.holderName
           )
         );
     }
@@ -209,7 +209,7 @@ service cloud.firestore {
         && (
           (
             request.resource.data.holderId == request.auth.uid
-            && exists(/databases/$(database)/documents/challenge/beats/$(request.auth.uid))
+            && exists(/databases/$(database)/documents/challengeBeats/$(request.auth.uid))
           )
           || (
             request.resource.data.holderId == ''
@@ -229,7 +229,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /challenge/beats/{uid} {
+    match /challengeBeats/{uid} {
       allow read: if signedIn();
       allow create, update: if signedIn()
         && request.auth.uid == uid

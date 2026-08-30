@@ -3193,10 +3193,10 @@
           }
           await clearChallengeIfMine(name, uid);
           if (uid) {
-            try { await fbDeleteAllowMissing("challenge/beats/" + encodeURIComponent(uid)); } catch (_) {}
+            try { await fbDeleteAllowMissing("challengeBeats/" + encodeURIComponent(uid)); } catch (_) {}
           }
           if (oldPid && oldPid !== uid) {
-            try { await fbDeleteAllowMissing("challenge/beats/" + encodeURIComponent(oldPid)); } catch (_) {}
+            try { await fbDeleteAllowMissing("challengeBeats/" + encodeURIComponent(oldPid)); } catch (_) {}
           }
           if (name) {
             await fbDeleteAllowMissing("usernames/" + encodeURIComponent(name));
@@ -3361,7 +3361,7 @@
       async function fetchOwnBeat() {
         if (!fbLocalId) return;
         try {
-          const res = await fbGet("challenge/beats/" + encodeURIComponent(fbLocalId));
+          const res = await fbGet("challengeBeats/" + encodeURIComponent(fbLocalId));
           if (res.ok) challengeHasBeat = true;
           else if (res.status === 404) challengeHasBeat = false;
         } catch (_) {}
@@ -3480,14 +3480,14 @@
           t: fsInt(Date.now()),
           name: fsStr(globalName)
         };
-        let res = await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
+        let res = await fbPatch("challengeBeats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
         if (res.status === 404) {
-          res = await fbCreate("challenge/beats", fbLocalId, fields);
+          res = await fbCreate("challengeBeats", fbLocalId, fields);
         }
         if (!res.ok && res.status === 409) {
-          res = await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
+          res = await fbPatch("challengeBeats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
         }
-        if (!res.ok) throw new Error("beat");
+        if (!res.ok) throw new Error("beat:" + res.status);
         challengeHasBeat = true;
       }
       async function onChallengeBeat() {
@@ -3521,12 +3521,12 @@
         };
         await ensureFbAuth();
         const res = await fbPatch("challenge/current", challengeFields(next), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
-        if (!res.ok) throw new Error("net");
+        if (!res.ok) throw new Error("challenge:" + res.status);
         const verify = await fbGet("challenge/current");
         const verifyData = await verify.json().catch(function () { return {}; });
         const saved = verify.ok ? parseChallenge(parseDoc(verifyData)) : null;
         if (!saved || saved.flashMs !== next.flashMs || saved.digits !== next.digits || saved.holderId !== next.holderId) {
-          throw new Error("verify");
+          throw new Error("verify:" + (verify.status || 0));
         }
         challengeState = saved;
         challengePending = null;
@@ -3554,10 +3554,11 @@
           }
             commitPendingChallenge().then(function () {
               renderSessionScores();
-            }).catch(function () {
+            }).catch(function (err) {
               challengeSaveAsked = false;
               renderSessionScores();
-              askConfirm("保存失败，新的挑战配置尚未生效。要重试保存吗？", "重试保存", false, "放弃保存").then(function (retry) {
+              const detail = err && err.message ? "（" + err.message + "）" : "";
+              askConfirm("保存失败" + detail + "，新的挑战配置尚未生效。要重试保存吗？", "重试保存", false, "放弃保存").then(function (retry) {
                 if (retry) askToSavePendingChallenge();
                 else discardPendingChallenge();
               });
