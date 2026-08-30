@@ -9,6 +9,7 @@
 - Load sound effects on demand, remove the unused MQTT asset, and improve mobile accessibility labels.
 - Add basic Firestore shape, range, ownership, and score-consistency checks.
 - Change challenge configuration updates to ask for confirmation after two consecutive correct answers, with one-tap saving.
+- Persist challenge qualification records, verify configuration writes by reading them back, and offer retry on failure.
 
 ## [0.1.0] - 2026-08-30
 
