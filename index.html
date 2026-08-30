@@ -3473,13 +3473,28 @@
           dailyNameBusy = false;
         }
       }
+      async function saveChallengeBeat() {
+        if (!globalName || !fbLocalId) throw new Error("auth");
+        await ensureFbAuth();
+        const fields = {
+          t: fsInt(Date.now()),
+          name: fsStr(globalName)
+        };
+        let res = await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
+        if (res.status === 404) {
+          res = await fbCreate("challenge/beats", fbLocalId, fields);
+        }
+        if (!res.ok && res.status === 409) {
+          res = await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), fields, ["t", "name"]);
+        }
+        if (!res.ok) throw new Error("beat");
+        challengeHasBeat = true;
+      }
       async function onChallengeBeat() {
         if (!globalName) return;
         const name = globalName;
         try {
-          await ensureFbAuth();
-          await fbPatch("challenge/beats/" + encodeURIComponent(fbLocalId), { t: fsInt(Date.now()), name: fsStr(name) }, ["t", "name"]);
-          challengeHasBeat = true;
+          await saveChallengeBeat();
           if (challengeState) {
             const keep = {
               flashMs: challengeState.flashMs,
@@ -3496,6 +3511,7 @@
       }
       async function commitPendingChallenge() {
         if (!challengePending || !globalName) return false;
+        await saveChallengeBeat();
         const next = {
           flashMs: challengePending.flashMs,
           digits: challengePending.digits,
@@ -3506,7 +3522,13 @@
         await ensureFbAuth();
         const res = await fbPatch("challenge/current", challengeFields(next), ["flashMs", "digits", "holderId", "holderName", "heldSince"]);
         if (!res.ok) throw new Error("net");
-        challengeState = next;
+        const verify = await fbGet("challenge/current");
+        const verifyData = await verify.json().catch(function () { return {}; });
+        const saved = verify.ok ? parseChallenge(parseDoc(verifyData)) : null;
+        if (!saved || saved.flashMs !== next.flashMs || saved.digits !== next.digits || saved.holderId !== next.holderId) {
+          throw new Error("verify");
+        }
+        challengeState = saved;
         challengePending = null;
         challengeSaveAsked = false;
         challengeHasBeat = true;
@@ -3530,14 +3552,17 @@
             discardPendingChallenge();
             return;
           }
-          commitPendingChallenge().then(function () {
-            renderSessionScores();
-          }).catch(function () {
-            challengeSaveAsked = false;
-            challengeError.classList.remove("hidden");
-            renderSessionScores();
+            commitPendingChallenge().then(function () {
+              renderSessionScores();
+            }).catch(function () {
+              challengeSaveAsked = false;
+              renderSessionScores();
+              askConfirm("保存失败，新的挑战配置尚未生效。要重试保存吗？", "重试保存", false, "放弃保存").then(function (retry) {
+                if (retry) askToSavePendingChallenge();
+                else discardPendingChallenge();
+              });
+            });
           });
-        });
       }
       function saveChallengeConfig() {
         if (!challengeHasBeat || !challengeState || !globalName) return;
