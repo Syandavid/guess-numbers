@@ -74,7 +74,15 @@ Do not delete Firestore data as part of a client rollback.
 
 ## External assets
 
-`mqtt.min.js` and the sound files are runtime assets and are included in the
-service-worker cache. When adding or renaming an asset, update both the file
-references and `sw.js`, then run the integrity check. Recheck the license and
-redistribution terms of vendored or remote assets before public distribution.
+The sound files are runtime assets and are cached on first use by the service
+worker. Sounds are loaded on demand after the audio context is armed, so avoid
+preloading unused media during service-worker installation or on the first
+tap. When adding or renaming an asset, update both the file references and
+`sw.js` when appropriate, then run the integrity check.
+Recheck the license and redistribution terms of vendored or remote assets
+before public distribution.
+
+Room and challenge synchronization currently uses guarded, visible-tab polling
+as a REST fallback. If the project grows beyond casual use, migrate these
+flows to Firestore realtime listeners and keep server-side validation for all
+score and answer writes.

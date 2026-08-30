@@ -1,21 +1,12 @@
-const CACHE = "guess-numbers-v36";
+const CACHE = "guess-numbers-v38";
 const ASSETS = [
   "./",
   "./index.html",
-  "./mqtt.min.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",
   "./icon-512.png",
-  "./apple-touch-icon.png",
-  "./sfx/ready.wav",
-  "./sfx/tick.wav",
-  "./sfx/reveal.wav",
-  "./sfx/correct.wav",
-  "./sfx/wrong.wav",
-  "./sfx/win.wav",
-  "./sfx/lose.wav",
-  "./sfx/record.wav"
+  "./apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {

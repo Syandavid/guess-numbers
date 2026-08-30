@@ -17,7 +17,6 @@ REQUIRED_FILES = (
     "firebase.json",
     "firestore.rules",
     "firestore.indexes.json",
-    "mqtt.min.js",
 )
 
 

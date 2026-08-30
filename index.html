@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -803,7 +803,8 @@
       gap: 10px;
     }
     .confirm-actions .ghost-btn,
-    .confirm-actions .danger-btn {
+    .confirm-actions .danger-btn,
+    .confirm-actions .confirm-primary {
       flex: 1;
       width: auto;
       font-size: 18px;
@@ -814,6 +815,19 @@
       border: none;
       background: #ef4444;
       color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .confirm-primary {
+      appearance: none;
+      border: none;
+      background: #fff;
+      color: #000;
       font-size: 18px;
       font-weight: 600;
       letter-spacing: 0.12em;
@@ -1092,7 +1106,7 @@
           <span>闪现时长</span>
           <span class="setting-value" id="flashLabel">0.40 秒</span>
         </div>
-        <input type="range" id="flashRange" min="50" max="1000" step="25" value="400">
+        <input type="range" id="flashRange" aria-label="闪现时长" min="50" max="1000" step="25" value="400">
         <div class="chips" id="flashPresets" style="margin-top:12px">
           <button type="button" class="chip" data-ms="50">极快</button>
           <button type="button" class="chip" data-ms="100">很快</button>
@@ -1107,7 +1121,7 @@
           <span>数字位数</span>
           <span class="setting-value" id="digitLabel">5 位</span>
         </div>
-        <input type="range" id="digitRange" min="1" max="15" step="1" value="5">
+        <input type="range" id="digitRange" aria-label="数字位数" min="1" max="15" step="1" value="5">
         <div class="chips" id="digitChips" style="margin-top:12px">
           <button type="button" class="chip" data-digits="4">4</button>
           <button type="button" class="chip" data-digits="5">5</button>
@@ -1124,12 +1138,12 @@
           <span>随机最少</span>
           <span class="setting-value" id="mixMinLabel">4 位</span>
         </div>
-        <input type="range" id="mixMinRange" min="1" max="15" step="1" value="4">
+        <input type="range" id="mixMinRange" aria-label="随机最少位数" min="1" max="15" step="1" value="4">
         <div class="setting-label" style="margin-top:16px">
           <span>随机最多</span>
           <span class="setting-value" id="mixMaxLabel">10 位</span>
         </div>
-        <input type="range" id="mixMaxRange" min="1" max="15" step="1" value="10">
+        <input type="range" id="mixMaxRange" aria-label="随机最多位数" min="1" max="15" step="1" value="10">
       </div>
       <div class="setting" id="playerSetting">
         <div class="setting-label">
@@ -1151,7 +1165,7 @@
           <span>数字大小</span>
           <span class="setting-value" id="sizeLabel">100%</span>
         </div>
-        <input type="range" id="sizeRange" min="50" max="100" step="5" value="100">
+        <input type="range" id="sizeRange" aria-label="数字大小" min="50" max="100" step="5" value="100">
         <div class="chips" id="sizePresets" style="margin-top:12px">
           <button type="button" class="chip" data-size="60">小</button>
           <button type="button" class="chip" data-size="80">中</button>
@@ -1166,14 +1180,14 @@
       <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
       <div id="bestBanner" class="best-banner hidden" aria-hidden="true">新纪录</div>
       <div class="stage">
-        <div id="readyText" class="phase-text ready hidden">准备</div>
-        <div id="flashText" class="numbers hidden"></div>
-        <div id="speakText" class="phase-text speak hidden">请说</div>
+        <div id="readyText" class="phase-text ready hidden" role="status" aria-live="polite">准备</div>
+        <div id="flashText" class="numbers hidden" role="status" aria-live="polite"></div>
+        <div id="speakText" class="phase-text speak hidden" role="status" aria-live="polite">请说</div>
       </div>
       <div id="answerBar" class="answer-bar hidden">
         <p id="typeTimer" class="type-timer hidden"></p>
         <div id="typeRow" class="type-row hidden">
-          <input class="type-input" id="typeInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
+          <input class="type-input" id="typeInput" type="text" aria-label="请输入看到的数字" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
           <button type="button" class="judge-btn type-submit" id="typeSubmit">提交</button>
         </div>
         <div id="soloRow" class="judge-row hidden">
@@ -1219,7 +1233,7 @@
       <p class="daily-sub" id="accountHint">点上面的名字即可切换。新增是注册新名字；取回是用口令把已有名字装回这台手机。</p>
       <div class="daily-name-box">
         <input class="room-input" id="accountNameInput" type="text" maxlength="8" placeholder="你的名字" name="account-name" autocomplete="username" autocapitalize="off" spellcheck="false">
-        <input class="room-input" id="accountPinInput" type="text" maxlength="8" placeholder="口令 4–8 位" name="account-pin" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="accountPinInput" type="password" aria-label="账号口令" maxlength="8" placeholder="口令 4–8 位" name="account-pin" autocomplete="new-password" autocapitalize="off" spellcheck="false">
         <div class="account-actions">
           <button type="button" class="start-btn" id="accountAddBtn">新增</button>
           <button type="button" class="ghost-btn" id="accountReclaimBtn">取回</button>
@@ -1290,14 +1304,14 @@
               <span>闪现时长</span>
               <span class="setting-value" id="roomFlashLabel">0.40 秒</span>
             </div>
-            <input type="range" id="roomFlashRange" min="50" max="1000" step="25" value="400">
+            <input type="range" id="roomFlashRange" aria-label="房间闪现时长" min="50" max="1000" step="25" value="400">
           </div>
           <div class="setting">
             <div class="setting-label">
               <span>数字位数</span>
               <span class="setting-value" id="roomDigitLabel">5 位</span>
             </div>
-            <input type="range" id="roomDigitRange" min="1" max="15" step="1" value="5">
+            <input type="range" id="roomDigitRange" aria-label="房间数字位数" min="1" max="15" step="1" value="5">
           </div>
           <div class="chips">
             <button type="button" class="chip" id="roomAntiCheatBtn">防作弊</button>
@@ -1307,7 +1321,7 @@
               <span>作答时限</span>
               <span class="setting-value" id="roomAnswerSecLabel">3 秒</span>
             </div>
-            <input type="range" id="roomAnswerSecRange" min="1" max="15" step="1" value="3">
+            <input type="range" id="roomAnswerSecRange" aria-label="房间作答时限" min="1" max="15" step="1" value="3">
           </div>
         </div>
         <div class="room-lobby-actions">
@@ -1326,7 +1340,7 @@
       <p id="dailyError" class="room-error hidden">连不上</p>
       <div id="dailyNameBox" class="daily-name-box hidden">
         <input class="room-input" id="dailyNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <input class="room-input" id="dailyPinInput" type="text" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="dailyPinInput" type="password" aria-label="日榜口令" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="start-btn" id="dailyNameOk">确定</button>
         <p class="daily-sub" id="dailyPinHint">口令用来取回这个名字，请自己记住</p>
         <p id="dailyNameErr" class="room-error hidden"></p>
@@ -1352,7 +1366,7 @@
       <p id="challengeError" class="room-error hidden">连不上</p>
       <div id="challengeNameBox" class="daily-name-box hidden">
         <input class="room-input" id="challengeNameInput" type="text" maxlength="8" placeholder="你的名字" autocomplete="off" autocapitalize="off" spellcheck="false">
-        <input class="room-input" id="challengePinInput" type="text" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input class="room-input" id="challengePinInput" type="password" aria-label="挑战口令" maxlength="8" placeholder="口令 4–8 位" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button type="button" class="start-btn" id="challengeNameOk">确定</button>
         <p class="daily-sub" id="challengePinHint">口令用来取回这个名字，请自己记住</p>
         <p id="challengeNameErr" class="room-error hidden"></p>
@@ -1370,17 +1384,17 @@
                 <span>闪现时长</span>
                 <span class="setting-value" id="challengeFlashLabel">0.15 秒</span>
               </div>
-              <input type="range" id="challengeFlashRange" min="50" max="1000" step="25" value="150">
+              <input type="range" id="challengeFlashRange" aria-label="挑战闪现时长" min="50" max="1000" step="25" value="150">
             </div>
             <div class="setting">
               <div class="setting-label">
                 <span>数字位数</span>
                 <span class="setting-value" id="challengeDigitLabel">4 位</span>
               </div>
-              <input type="range" id="challengeDigitRange" min="1" max="15" step="1" value="4">
+              <input type="range" id="challengeDigitRange" aria-label="挑战数字位数" min="1" max="15" step="1" value="4">
             </div>
             <button type="button" class="start-btn" id="challengeSave">保存</button>
-            <p class="challenge-muted" id="challengeSaveHint">保存前需按新设置连对 2 次</p>
+            <p class="challenge-muted" id="challengeSaveHint">按新设置连对 2 次后，可一键保存</p>
           </div>
         </div>
       </div>
@@ -1569,6 +1583,7 @@
       let challengeState = null;
       let challengeHasBeat = false;
       let challengePending = null;
+      let challengeSaveAsked = false;
       let roomDoc = null;
       let roomMembers = [];
       let roomAnswers = [];
@@ -1576,6 +1591,8 @@
       let roomViewRound = -1;
       let roomViewPhase = "";
       let roomPollFail = 0;
+      let pollInFlight = false;
+      let challengeRefreshInFlight = false;
       let lastNumber = "";
       let roundIsReplay = false;
       let sessionScores = [0, 0, 0, 0, 0, 0, 0];
@@ -1955,11 +1972,15 @@
         currentSession = null;
       }
 
-      function askConfirm(msg) {
+      function askConfirm(msg, okLabel, danger, cancelLabel) {
         return new Promise((resolve) => {
           if (confirmResolve) confirmResolve(false);
           confirmResolve = resolve;
           confirmText.textContent = msg;
+          confirmCancel.textContent = cancelLabel || "取消";
+          confirmOk.textContent = okLabel || "删除";
+          confirmOk.classList.toggle("danger-btn", danger !== false);
+          confirmOk.classList.toggle("confirm-primary", danger === false);
           confirmModal.classList.remove("hidden");
         });
       }
@@ -1968,6 +1989,10 @@
         confirmModal.classList.add("hidden");
         const fn = confirmResolve;
         confirmResolve = null;
+        confirmCancel.textContent = "取消";
+        confirmOk.textContent = "删除";
+        confirmOk.classList.add("danger-btn");
+        confirmOk.classList.remove("confirm-primary");
         if (fn) fn(!!ok);
       }
 
@@ -3200,7 +3225,7 @@
       }
 
 
-      const POLL_MS = 800;
+      const POLL_MS = 2000;
       function fsBool(b) { return { booleanValue: !!b }; }
       function fsStrArray(arr) {
         const values = (arr || []).map(function (s) { return { stringValue: String(s) }; });
@@ -3360,6 +3385,8 @@
         throw new Error("net");
       }
       async function refreshChallenge() {
+        if (challengeRefreshInFlight) return;
+        challengeRefreshInFlight = true;
         try {
           await ensureFbAuth();
           await loadOrSeedChallenge();
@@ -3367,6 +3394,7 @@
           challengeError.classList.add("hidden");
           renderChallenge();
         } catch (_) { challengeError.classList.remove("hidden"); }
+        finally { challengeRefreshInFlight = false; }
       }
       function showChallengeNameErr(msg) {
         if (!msg) {
@@ -3391,6 +3419,7 @@
       function openChallenge() {
         if (phase !== "ready" && phase !== "flash" && phase !== "speak" && phase !== "answer" && phase !== "input") {
           challengePending = null;
+          challengeSaveAsked = false;
         }
         phase = "challenge";
         showScreen(challenge);
@@ -3479,10 +3508,36 @@
         if (!res.ok) throw new Error("net");
         challengeState = next;
         challengePending = null;
+        challengeSaveAsked = false;
         challengeHasBeat = true;
         challengeError.classList.add("hidden");
         playSfx("win");
         return true;
+      }
+      function discardPendingChallenge() {
+        challengePending = null;
+        challengeSaveAsked = false;
+        challengeError.classList.add("hidden");
+        renderChallenge();
+        renderSessionScores();
+      }
+      function askToSavePendingChallenge() {
+        if (!challengePending || challengePending.streak < 2 || challengeSaveAsked) return;
+        challengeSaveAsked = true;
+        askConfirm("新配置已连续答对 2 次，是否保存为全服挑战配置？", "保存配置", false, "暂不保存").then(function (ok) {
+          if (!challengePending) return;
+          if (!ok) {
+            discardPendingChallenge();
+            return;
+          }
+          commitPendingChallenge().then(function () {
+            renderSessionScores();
+          }).catch(function () {
+            challengeSaveAsked = false;
+            challengeError.classList.remove("hidden");
+            renderSessionScores();
+          });
+        });
       }
       function saveChallengeConfig() {
         if (!challengeHasBeat || !challengeState || !globalName) return;
@@ -3491,6 +3546,7 @@
           digits: clampDigit(Number(challengeDigitRange.value), 4),
           streak: 0
         };
+        challengeSaveAsked = false;
         challengeEditBox.classList.add("hidden");
         challengeError.classList.add("hidden");
         startGame("challenge");
@@ -3705,7 +3761,8 @@
         return { doc: doc, members: members, answers: answers };
       }
       async function pollRoomOnce() {
-        if (!roomCode) return;
+        if (!roomCode || pollInFlight) return;
+        pollInFlight = true;
         try {
           const bundle = await fetchRoomBundle();
           if (bundle.missing) {
@@ -3725,7 +3782,7 @@
         } catch (_) {
           roomPollFail += 1;
           if (roomPollFail >= 2) showRoomError(true);
-        }
+        } finally { pollInFlight = false; }
       }
       function everyoneAnswered() {
         if (!roomDoc || !roomMembers.length) return false;
@@ -3853,6 +3910,11 @@
           roomAnswers.push({ _id: fbLocalId, roundId: roomDoc.roundId, answer: String(answer || ""), ok: !!ok, t: Date.now() });
           hideRoomError();
         } catch (_) { typedLocked = false; showRoomError(true); return; }
+        if (currentSession) {
+          currentSession.rounds += 1;
+          if (ok) currentSession.correct += 1;
+          else currentSession.wrong += 1;
+        }
         const madeBest = !!(ok && considerBest());
         stopTicks();
         playRoundResult(ok, madeBest);
@@ -4007,15 +4069,23 @@
         return false;
       }
       function ensurePoll() {
+        if (document.visibilityState === "hidden" || navigator.onLine === false) return;
         if (pollTimer) return;
         pollTimer = setInterval(tickPoll, POLL_MS);
         tickPoll();
       }
-      function stopPollIfIdle() {
-        if (shouldPoll()) return;
+      function stopPollTimer() {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       }
+      function stopPollIfIdle() {
+        if (shouldPoll() && document.visibilityState !== "hidden" && navigator.onLine !== false) return;
+        stopPollTimer();
+      }
       function tickPoll() {
+        if (document.visibilityState === "hidden" || navigator.onLine === false || !shouldPoll()) {
+          stopPollIfIdle();
+          return;
+        }
         if (roomCode) pollRoomOnce();
         if (challenge.classList.contains("active") || (gameMode === "challenge" && game.classList.contains("active"))) {
           if (challengeState) renderChallenge();
@@ -4023,6 +4093,12 @@
         }
         if (!shouldPoll()) stopPollIfIdle();
       }
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") ensurePoll();
+        else stopPollTimer();
+      });
+      window.addEventListener("online", ensurePoll);
+      window.addEventListener("offline", stopPollTimer);
 
       function updateInputTimer() {
         if (gameMode !== "room" || !roomDoc || !roomDoc.antiCheat || phase !== "input") {
@@ -4065,13 +4141,7 @@
             if (ok) challengePending.streak += 1;
             else challengePending.streak = 0;
           }
-          if (challengePending.streak >= 2) {
-            commitPendingChallenge().then(function () {
-              renderSessionScores();
-            }).catch(function () {
-              challengeError.classList.remove("hidden");
-            });
-          }
+          if (challengePending.streak >= 2) askToSavePendingChallenge();
         } else if (countThis && gameMode === "challenge" && ok) {
           challengeHasBeat = true;
           onChallengeBeat();
@@ -4193,7 +4263,7 @@
       };
       let sfxCtx = null;
       let sfxBuf = {};
-      let sfxLoading = false;
+      const sfxLoading = {};
       let sfxTickSrc = null;
       let sfxTickOsc = [];
       function armAudio() {
@@ -4213,16 +4283,18 @@
             o.stop(sfxCtx.currentTime + 0.08);
           }
         } catch (_) {}
-        if (!sfxCtx || sfxLoading) return;
-        sfxLoading = true;
-        Object.keys(SFX_FILES).forEach(function (k) {
-          fetch(SFX_FILES[k]).then(function (r) { return r.arrayBuffer(); }).then(function (arr) {
-            function ok(buf) { sfxBuf[k] = buf; }
-            try {
-              const p = sfxCtx.decodeAudioData(arr.slice(0), ok, function () {});
-              if (p && p.then) p.then(ok).catch(function () {});
-            } catch (_) {}
-          }).catch(function () {});
+      }
+      function loadSfx(kind) {
+        if (!sfxCtx || !SFX_FILES[kind] || sfxBuf[kind] || sfxLoading[kind]) return;
+        sfxLoading[kind] = true;
+        fetch(SFX_FILES[kind]).then(function (r) { return r.arrayBuffer(); }).then(function (arr) {
+          function ok(buf) { sfxBuf[kind] = buf; }
+          try {
+            const p = sfxCtx.decodeAudioData(arr.slice(0), ok, function () {});
+            if (p && p.then) p.then(ok).catch(function () {});
+          } catch (_) {}
+        }).catch(function () {}).finally(function () {
+          sfxLoading[kind] = false;
         });
       }
       function stopTicks() {
@@ -4293,6 +4365,7 @@
       function playSfx(kind) {
         armAudio();
         if (!sfxCtx) return;
+        loadSfx(kind);
         function go() {
           if (kind !== "tick") stopTicks();
           if (sfxBuf[kind]) {
@@ -4591,13 +4664,14 @@
           return;
         }
         if (phase !== "answer") return;
-        if (currentSession) {
+        const countThis = !roundIsReplay;
+        if (countThis && currentSession) {
           currentSession.rounds += 1;
           if (ok) currentSession.correct += 1;
           else currentSession.wrong += 1;
         }
         const playerCount = currentSession ? currentSession.playerCount : settingsState.playerCount;
-        const madeBest = !!(ok && playerCount === 1 && considerBest());
+        const madeBest = !!(countThis && ok && playerCount === 1 && considerBest());
         playRoundResult(ok, madeBest);
         if (resultTimer) clearTimeout(resultTimer);
         resultTimer = setTimeout(function () {
@@ -4642,6 +4716,7 @@
 
       function openChallengeEditor() {
         challengePending = null;
+        challengeSaveAsked = false;
         finalizeSession();
         gameMode = "solo";
         openChallenge();
@@ -4657,7 +4732,10 @@
       }
       function leaveGame() {
         const mode = gameMode;
-        if (mode === "challenge") challengePending = null;
+        if (mode === "challenge") {
+          challengePending = null;
+          challengeSaveAsked = false;
+        }
         finalizeSession();
         if (roomCode) {
           roomStayLobby = true;

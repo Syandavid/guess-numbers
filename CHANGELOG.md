@@ -4,6 +4,11 @@
 
 - Document the Firebase data boundary and casual-game anti-cheat limitation.
 - Add offline integrity checks and a repeatable maintenance workflow.
+- Reduce room/challenge polling cost and pause synchronization in hidden or offline tabs.
+- Prevent replayed local rounds from adding duplicate scores and include room rounds in local records.
+- Load sound effects on demand, remove the unused MQTT asset, and improve mobile accessibility labels.
+- Add basic Firestore shape, range, ownership, and score-consistency checks.
+- Change challenge configuration updates to ask for confirmation after two consecutive correct answers, with one-tap saving.
 
 ## [0.1.0] - 2026-08-30
 

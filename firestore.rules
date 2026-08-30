@@ -43,10 +43,11 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/nameLocks/$(uname)).data;
     }
 
-    function isValidDailyPlayer(pid) {
-      return request.resource.data.keys().hasOnly(['playerId', 'name', 'correct', 'wrong', 'rankScore', 't'])
+    function isValidDailyPlayer(pid, day) {
+        return request.resource.data.keys().hasOnly(['playerId', 'name', 'correct', 'wrong', 'rankScore', 't'])
         && request.resource.data.playerId == request.auth.uid
         && request.resource.data.playerId == pid
+        && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
         && request.resource.data.name is string
         && request.resource.data.name.size() >= 2
         && request.resource.data.name.size() <= 8
@@ -57,7 +58,101 @@ service cloud.firestore {
         && request.resource.data.correct >= 0
         && request.resource.data.wrong >= 0
         && request.resource.data.correct <= 100000
-        && request.resource.data.wrong <= 100000;
+        && request.resource.data.wrong <= 100000
+        && request.resource.data.correct + request.resource.data.wrong <= 100000
+        && request.resource.data.rankScore == request.resource.data.correct * 10000 - request.resource.data.wrong;
+    }
+
+    function isValidChallengeCurrent() {
+      return request.resource.data.keys().hasOnly(['flashMs', 'digits', 'holderId', 'holderName', 'heldSince'])
+        && request.resource.data.flashMs is int
+        && request.resource.data.flashMs >= 50
+        && request.resource.data.flashMs <= 1000
+        && request.resource.data.digits is int
+        && request.resource.data.digits >= 1
+        && request.resource.data.digits <= 15
+        && request.resource.data.holderId is string
+        && request.resource.data.holderId.size() <= 128
+        && request.resource.data.holderName is string
+        && request.resource.data.holderName.size() >= 2
+        && request.resource.data.holderName.size() <= 8
+        && request.resource.data.heldSince is int
+        && request.resource.data.heldSince >= 0
+        && (
+          (request.resource.data.holderId == '' && request.resource.data.holderName == '系统')
+          || (
+            exists(/databases/$(database)/documents/challenge/beats/$(request.resource.data.holderId))
+            && get(/databases/$(database)/documents/challenge/beats/$(request.resource.data.holderId)).data.name == request.resource.data.holderName
+          )
+        );
+    }
+
+    function isValidChallengeBeat(uid) {
+      return request.resource.data.keys().hasOnly(['t', 'name'])
+        && request.resource.data.t is int
+        && request.resource.data.t >= 0
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 8;
+    }
+
+    function isValidRoom(code) {
+      return code.matches('^[1-9][0-9]{3}$')
+        && request.resource.data.keys().hasOnly([
+          'ownerId', 'ownerName', 'adminIds', 'antiCheat', 'answerSeconds',
+          'phase', 'roundId', 'number', 'flashMs', 'digits', 'flashAt',
+          'inputUntil', 'replay'
+        ])
+        && request.resource.data.ownerId is string
+        && request.resource.data.ownerId.size() >= 8
+        && request.resource.data.ownerId.size() <= 128
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() >= 2
+        && request.resource.data.ownerName.size() <= 8
+        && request.resource.data.adminIds is list
+        && request.resource.data.antiCheat is bool
+        && request.resource.data.answerSeconds is int
+        && request.resource.data.answerSeconds >= 1
+        && request.resource.data.answerSeconds <= 15
+        && request.resource.data.phase in ['lobby', 'flash', 'input', 'reveal']
+        && request.resource.data.roundId is int
+        && request.resource.data.roundId >= 0
+        && request.resource.data.roundId <= 1000000
+        && request.resource.data.number is string
+        && request.resource.data.number.matches('^[0-9]*$')
+        && request.resource.data.number.size() <= 15
+        && request.resource.data.flashMs is int
+        && request.resource.data.flashMs >= 50
+        && request.resource.data.flashMs <= 1000
+        && request.resource.data.digits is int
+        && request.resource.data.digits >= 1
+        && request.resource.data.digits <= 15
+        && request.resource.data.flashAt is int
+        && request.resource.data.flashAt >= 0
+        && request.resource.data.inputUntil is int
+        && request.resource.data.inputUntil >= 0
+        && request.resource.data.replay is bool;
+    }
+
+    function isValidMember() {
+      return request.resource.data.keys().hasOnly(['name', 'joinedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 8
+        && request.resource.data.joinedAt is int
+        && request.resource.data.joinedAt >= 0;
+    }
+
+    function isValidAnswer(code) {
+      return request.resource.data.keys().hasOnly(['roundId', 'answer', 'ok', 't'])
+        && request.resource.data.roundId is int
+        && request.resource.data.roundId == get(/databases/$(database)/documents/rooms/$(code)).data.roundId
+        && request.resource.data.answer is string
+        && request.resource.data.answer.matches('^[0-9]*$')
+        && request.resource.data.answer.size() <= 15
+        && request.resource.data.ok is bool
+        && request.resource.data.t is int
+        && request.resource.data.t >= 0;
     }
 
     function ownsName() {
@@ -94,7 +189,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, update: if signedIn()
         && request.auth.uid == pid
-        && isValidDailyPlayer(pid)
+        && isValidDailyPlayer(pid, day)
         && ownsName();
       allow delete: if signedIn() && (
         request.auth.uid == pid
@@ -108,10 +203,14 @@ service cloud.firestore {
 
     match /challenge/current {
       allow read: if signedIn();
-      allow create: if signedIn();
+      allow create: if signedIn() && isValidChallengeCurrent();
       allow update: if signedIn()
+        && isValidChallengeCurrent()
         && (
-          exists(/databases/$(database)/documents/challenge/beats/$(request.auth.uid))
+          (
+            request.resource.data.holderId == request.auth.uid
+            && exists(/databases/$(database)/documents/challenge/beats/$(request.auth.uid))
+          )
           || (
             request.resource.data.holderId == ''
             && request.resource.data.flashMs == resource.data.flashMs
@@ -132,7 +231,10 @@ service cloud.firestore {
 
     match /challenge/beats/{uid} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && isValidChallengeBeat(uid)
+        && ownsName();
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
@@ -160,12 +262,18 @@ service cloud.firestore {
       allow list: if false;
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && code.matches('^[1-9][0-9]{3}$');
+        && isValidRoom(code);
       allow update: if signedIn() && (
-        resource.data.ownerId == request.auth.uid
-        || request.auth.uid in resource.data.adminIds
+        (
+          isValidRoom(code)
+          && (
+            resource.data.ownerId == request.auth.uid
+            || request.auth.uid in resource.data.adminIds
+          )
+        )
         || (
           isMember(code)
+          && isValidRoom(code)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phase'])
         )
       );
@@ -174,13 +282,25 @@ service cloud.firestore {
 
     match /rooms/{code}/members/{uid} {
       allow read: if signedIn() && isMember(code);
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update, delete: if signedIn() && (request.auth.uid == uid || isAdmin(code));
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/rooms/$(code))
+        && isValidMember();
+      allow update: if signedIn()
+        && (request.auth.uid == uid || isAdmin(code))
+        && isValidMember();
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin(code));
     }
 
     match /rooms/{code}/answers/{uid} {
-      allow create: if signedIn() && request.auth.uid == uid && isMember(code);
-      allow update: if signedIn() && request.auth.uid == uid && isMember(code);
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && isMember(code)
+        && isValidAnswer(code);
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && isMember(code)
+        && isValidAnswer(code);
       allow read: if signedIn() && isMember(code) && (
         uid == request.auth.uid
         || roomDoc(code).phase == 'reveal'
