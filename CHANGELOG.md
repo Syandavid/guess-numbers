@@ -15,3 +15,4 @@
 ## [0.1.0] - 2026-08-30
 
 - Initial public PWA with practice, daily, challenge and multiplayer room modes.
+- Make challenge-mode round feedback shorter and distinct from the configuration-saved confirmation sound.

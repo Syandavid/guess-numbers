@@ -3533,7 +3533,7 @@
         challengeSaveAsked = false;
         challengeHasBeat = true;
         challengeError.classList.add("hidden");
-        playSfx("win");
+        playSfx("challengeSaved");
         return true;
       }
       function discardPendingChallenge() {
@@ -4386,6 +4386,19 @@
           sfxTone(987.77, t0 + 0.2, 0.12, "triangle", 0.32);
           sfxTone(1318.5, t0 + 0.32, 0.22, "sine", 0.28);
           sfxTone(1568, t0 + 0.48, 0.5, "sine", 0.24);
+        } else if (kind === "challengeCorrect") {
+          // Challenge rounds need a brief acknowledgement, not a victory fanfare.
+          sfxTone(740, t0, 0.08, "sine", 0.16);
+          sfxTone(988, t0 + 0.075, 0.13, "sine", 0.2);
+        } else if (kind === "challengeWrong") {
+          // Keep the error unmistakable while leaving room for the next attempt.
+          sfxTone(196, t0, 0.11, "sawtooth", 0.16, 156);
+          sfxTone(147, t0 + 0.1, 0.16, "triangle", 0.13, 123);
+        } else if (kind === "challengeSaved") {
+          // This is the only challenge-mode sound that gets a clear completion motif.
+          sfxTone(523.25, t0, 0.1, "triangle", 0.2);
+          sfxTone(659.25, t0 + 0.09, 0.1, "triangle", 0.2);
+          sfxTone(1046.5, t0 + 0.19, 0.24, "sine", 0.22);
         }
       }
       function playSfx(kind) {
@@ -4413,7 +4426,7 @@
         else go();
       }
       function playRoundResult(ok, madeBest) {
-        if (gameMode === "challenge") playSfx(ok ? "win" : "lose");
+        if (gameMode === "challenge") playSfx(ok ? "challengeCorrect" : "challengeWrong");
         else if (ok && madeBest) playSfx("record");
         else playSfx(ok ? "correct" : "wrong");
       }
