@@ -4274,6 +4274,10 @@
           clearTimeout(resultTimer);
           resultTimer = null;
         }
+        if (readyDelayTimer !== null) {
+          clearTimeout(readyDelayTimer);
+          readyDelayTimer = null;
+        }
         stopTicks();
       }
 
@@ -4298,6 +4302,21 @@
       const sfxLoading = {};
       let sfxTickSrc = null;
       let sfxTickOsc = [];
+      let sfxQuietUntil = 0;
+      let readyDelayTimer = null;
+      const SFX_TAIL_MS = {
+        ready: 850,
+        tick: 0,
+        reveal: 650,
+        correct: 850,
+        wrong: 620,
+        win: 1400,
+        lose: 1100,
+        record: 1100,
+        challengeCorrect: 260,
+        challengeWrong: 360,
+        challengeSaved: 520
+      };
       function armAudio() {
         try {
           const C = window.AudioContext || window.webkitAudioContext;
@@ -4411,6 +4430,10 @@
         armAudio();
         if (!sfxCtx) return;
         loadSfx(kind);
+        const now = Date.now();
+        const delay = Math.max(0, sfxQuietUntil - now);
+        const tail = Number(SFX_TAIL_MS[kind] || 0);
+        sfxQuietUntil = now + delay + tail;
         function go() {
           if (kind !== "tick") stopTicks();
           if (sfxBuf[kind]) {
@@ -4428,8 +4451,12 @@
           }
           sfxOsc(kind);
         }
-        if (sfxCtx.state === "suspended") sfxCtx.resume().then(go);
-        else go();
+        function start() {
+          if (sfxCtx.state === "suspended") sfxCtx.resume().then(go);
+          else go();
+        }
+        if (delay > 0) setTimeout(start, delay);
+        else start();
       }
       function playRoundResult(ok, madeBest) {
         if (gameMode === "challenge") playSfx(ok ? "challengeCorrect" : "challengeWrong");
@@ -4647,6 +4674,15 @@
       }
 
       function enterReady(keep) {
+        const wait = Math.max(0, sfxQuietUntil - Date.now());
+        if (wait > 0) {
+          if (readyDelayTimer !== null) clearTimeout(readyDelayTimer);
+          readyDelayTimer = setTimeout(function () {
+            readyDelayTimer = null;
+            enterReady(keep);
+          }, wait);
+          return;
+        }
         roundIsReplay = !!keep;
         clearTimers();
         stopTicks();
