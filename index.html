@@ -1231,7 +1231,7 @@
 
     <section id="game" class="screen" aria-label="游戏">
       <button type="button" class="exit-btn" id="exitBtn">退出</button>
-      <button type="button" class="exit-btn pause-btn hidden" id="pauseBtn">暂停</button>
+      <button type="button" class="exit-btn pause-btn hidden" id="pauseBtn" hidden>暂停</button>
       <button type="button" class="exit-btn right" id="gameDailyBtn">日榜</button>
       <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
       <div id="bestBanner" class="best-banner hidden" aria-hidden="true">新纪录</div>
@@ -1259,7 +1259,7 @@
           <button type="button" class="replay-btn hidden" id="challengeTuneBtn">更新挑战</button>
         </div>
       </div>
-      <div id="pauseMask" class="pause-mask hidden" role="dialog" aria-modal="true" aria-label="游戏已暂停">
+      <div id="pauseMask" class="pause-mask hidden" hidden role="dialog" aria-modal="true" aria-label="游戏已暂停">
         <div class="pause-card">
           <p>游戏已暂停</p>
           <button type="button" class="start-btn" id="resumeBtn">继续</button>
@@ -4367,6 +4367,7 @@
         pausedTimerRemaining = 0;
         pausedTimerKeep = false;
         pauseMask.classList.add("hidden");
+        pauseMask.hidden = true;
         stopTicks();
         updatePauseControl();
       }
@@ -4375,8 +4376,10 @@
         const canPause = intervalPaused || resultTimer !== null || readyDelayTimer !== null;
         const visible = game.classList.contains("active") && canPause;
         pauseBtn.classList.toggle("hidden", !visible);
+        pauseBtn.hidden = !visible;
         pauseBtn.textContent = intervalPaused ? "继续" : "暂停";
         pauseMask.classList.toggle("hidden", !intervalPaused);
+        pauseMask.hidden = !intervalPaused;
       }
 
       function pauseInterval() {
@@ -4401,6 +4404,7 @@
           readyDelayDueAt = 0;
         }
         pauseMask.classList.remove("hidden");
+        pauseMask.hidden = false;
         updatePauseControl();
       }
 
@@ -4414,6 +4418,7 @@
         pausedTimerRemaining = 0;
         pausedTimerKeep = false;
         pauseMask.classList.add("hidden");
+        pauseMask.hidden = true;
         if (kind === "result") {
           resultDueAt = Date.now() + remaining;
           resultTimer = setTimeout(function () {
@@ -5609,6 +5614,11 @@
         patchRoomDoc({ answerSeconds: clampAnswerSec(roomAnswerSecRange.value) }, ["answerSeconds"]);
       });
 
+      intervalPaused = false;
+      pauseMask.hidden = true;
+      pauseMask.classList.add("hidden");
+      pauseBtn.hidden = true;
+      pauseBtn.classList.add("hidden");
       renderSettings();
       renderHomeDaily();
       refreshDailyRankSilent();
