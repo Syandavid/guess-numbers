@@ -19,3 +19,4 @@
 - Bypass Service Worker caching for Firebase reads so saved challenge settings are verified against live data.
 - Queue consecutive sound effects to prevent answer feedback and the next-round cue from overlapping.
 - Make the post-answer gap configurable and pausable while waiting for the next round.
+- Reset pause controls on startup and refresh the PWA cache to avoid an accidental paused screen.
