@@ -289,6 +289,45 @@
     }
     .exit-btn:active { opacity: 0.7; }
 
+    .pause-btn {
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+    }
+    .pause-btn:disabled {
+      opacity: 0.28;
+      cursor: default;
+    }
+    .pause-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.88);
+      padding: 24px;
+    }
+    .pause-card {
+      width: min(100%, 320px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+    .pause-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 22px;
+      letter-spacing: 0.1em;
+    }
+    .pause-card .start-btn {
+      width: min(100%, 220px);
+      font-size: 20px;
+      padding: 14px 20px;
+    }
+
     .stage {
       flex: 1;
       min-height: 0;
@@ -1055,7 +1094,8 @@
 
     #typeInput:focus-visible,
     #challengeFlashRange:focus-visible,
-    #challengeDigitRange:focus-visible {
+    #challengeDigitRange:focus-visible,
+    #nextGapRange:focus-visible {
       outline: 2px solid var(--orange);
       outline-offset: 3px;
     }
@@ -1118,6 +1158,21 @@
       </div>
       <div class="setting">
         <div class="setting-label">
+          <span>答题后间隔</span>
+          <span class="setting-value" id="nextGapLabel">0.50 秒</span>
+        </div>
+        <input type="range" id="nextGapRange" aria-label="答题后间隔" min="0" max="3000" step="100" value="500">
+        <div class="chips" id="nextGapPresets" style="margin-top:12px">
+          <button type="button" class="chip" data-gap="0">即时</button>
+          <button type="button" class="chip" data-gap="300">短</button>
+          <button type="button" class="chip" data-gap="500">普通</button>
+          <button type="button" class="chip" data-gap="1000">舒缓</button>
+          <button type="button" class="chip" data-gap="2000">慢</button>
+        </div>
+        <p class="room-hint">提示音结束后，进入下一题前的额外等待；等待期间可以暂停。</p>
+      </div>
+      <div class="setting">
+        <div class="setting-label">
           <span>数字位数</span>
           <span class="setting-value" id="digitLabel">5 位</span>
         </div>
@@ -1176,6 +1231,7 @@
 
     <section id="game" class="screen" aria-label="游戏">
       <button type="button" class="exit-btn" id="exitBtn">退出</button>
+      <button type="button" class="exit-btn pause-btn hidden" id="pauseBtn">暂停</button>
       <button type="button" class="exit-btn right" id="gameDailyBtn">日榜</button>
       <div id="sessionScores" class="session-scores hidden" aria-hidden="true"></div>
       <div id="bestBanner" class="best-banner hidden" aria-hidden="true">新纪录</div>
@@ -1201,6 +1257,12 @@
           <button type="button" class="replay-btn" id="replayBtn">重玩</button>
           <button type="button" class="replay-btn" id="nextBtn">下一轮</button>
           <button type="button" class="replay-btn hidden" id="challengeTuneBtn">更新挑战</button>
+        </div>
+      </div>
+      <div id="pauseMask" class="pause-mask hidden" role="dialog" aria-modal="true" aria-label="游戏已暂停">
+        <div class="pause-card">
+          <p>游戏已暂停</p>
+          <button type="button" class="start-btn" id="resumeBtn">继续</button>
         </div>
       </div>
     </section>
@@ -1420,6 +1482,9 @@
       const settingsBtn = document.getElementById("settingsBtn");
       const settingsBack = document.getElementById("settingsBack");
       const exitBtn = document.getElementById("exitBtn");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const pauseMask = document.getElementById("pauseMask");
+      const resumeBtn = document.getElementById("resumeBtn");
       const gameDailyBtn = document.getElementById("gameDailyBtn");
       const readyText = document.getElementById("readyText");
       const flashText = document.getElementById("flashText");
@@ -1444,6 +1509,8 @@
       const mixMinLabel = document.getElementById("mixMinLabel");
       const mixMaxLabel = document.getElementById("mixMaxLabel");
       const flashLabel = document.getElementById("flashLabel");
+      const nextGapRange = document.getElementById("nextGapRange");
+      const nextGapLabel = document.getElementById("nextGapLabel");
       const homeHint = document.getElementById("homeHint");
       const homeBest = document.getElementById("homeBest");
       const bestBanner = document.getElementById("bestBanner");
@@ -1671,19 +1738,26 @@
               digits: digits,
               mixMin: mix.min,
               mixMax: mix.max,
+              nextGapMs: clampGapMs(parsed.nextGapMs),
               sizePct: clampSize(parsed.sizePct),
               playerCount: clampPlayers(parsed.playerCount),
               joinDaily: false
             };
           }
         } catch (_) {}
-        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, sizePct: 100, playerCount: 1, joinDaily: false };
+        return { flashMs: 400, digits: 5, mixMin: 4, mixMax: 10, nextGapMs: 500, sizePct: 100, playerCount: 1, joinDaily: false };
       }
 
       function clampMs(n) {
         n = Number(n);
         if (!Number.isFinite(n)) return 400;
         return Math.min(1000, Math.max(50, Math.round(n / 25) * 25));
+      }
+
+      function clampGapMs(n) {
+        n = Number(n);
+        if (!Number.isFinite(n)) return 500;
+        return Math.min(3000, Math.max(0, Math.round(n / 100) * 100));
       }
 
       function clampSize(n) {
@@ -1951,6 +2025,7 @@
               : settingsState.digits,
             mixMin: settingsState.mixMin,
             mixMax: settingsState.mixMax,
+            nextGapMs: settingsState.nextGapMs,
             sizePct: settingsState.sizePct
           },
           rounds: 0,
@@ -2074,6 +2149,8 @@
         clampDailyJoinSettings();
         flashRange.value = String(settingsState.flashMs);
         flashLabel.textContent = (settingsState.flashMs / 1000).toFixed(2) + " 秒";
+        nextGapRange.value = String(settingsState.nextGapMs);
+        nextGapLabel.textContent = (settingsState.nextGapMs / 1000).toFixed(2) + " 秒";
         const isMix = settingsState.digits === "mix";
         mixSetting.classList.toggle("hidden", !isMix);
         digitRange.classList.toggle("hidden", isMix);
@@ -2105,6 +2182,9 @@
           const ms = Number(btn.dataset.ms);
           btn.classList.toggle("active", ms === settingsState.flashMs);
           btn.classList.toggle("dim", settingsState.joinDaily && ms > 150);
+        });
+        document.querySelectorAll("#nextGapPresets .chip").forEach((btn) => {
+          btn.classList.toggle("active", Number(btn.dataset.gap) === settingsState.nextGapMs);
         });
         document.querySelectorAll("#digitChips .chip").forEach((btn) => {
           const val = btn.dataset.digits === "mix" ? "mix" : Number(btn.dataset.digits);
@@ -4206,6 +4286,7 @@
           s.classList.remove("active");
         });
         el.classList.add("active");
+        updatePauseControl();
         if (el === home) {
           renderHomeHint();
           refreshDailyRankSilent();
@@ -4278,7 +4359,79 @@
           clearTimeout(readyDelayTimer);
           readyDelayTimer = null;
         }
+        readyDelayDueAt = 0;
+        readyDelayKeep = false;
+        resultDueAt = 0;
+        intervalPaused = false;
+        pausedTimerKind = "";
+        pausedTimerRemaining = 0;
+        pausedTimerKeep = false;
+        pauseMask.classList.add("hidden");
         stopTicks();
+        updatePauseControl();
+      }
+
+      function updatePauseControl() {
+        const canPause = intervalPaused || resultTimer !== null || readyDelayTimer !== null;
+        const visible = game.classList.contains("active") && canPause;
+        pauseBtn.classList.toggle("hidden", !visible);
+        pauseBtn.textContent = intervalPaused ? "继续" : "暂停";
+        pauseMask.classList.toggle("hidden", !intervalPaused);
+      }
+
+      function pauseInterval() {
+        if (intervalPaused) {
+          resumeInterval();
+          return;
+        }
+        if (resultTimer === null && readyDelayTimer === null) return;
+        intervalPaused = true;
+        if (resultTimer !== null) {
+          clearTimeout(resultTimer);
+          resultTimer = null;
+          pausedTimerKind = "result";
+          pausedTimerRemaining = Math.max(0, resultDueAt - Date.now());
+          resultDueAt = 0;
+        } else {
+          clearTimeout(readyDelayTimer);
+          readyDelayTimer = null;
+          pausedTimerKind = "ready";
+          pausedTimerKeep = readyDelayKeep;
+          pausedTimerRemaining = Math.max(0, readyDelayDueAt - Date.now());
+          readyDelayDueAt = 0;
+        }
+        pauseMask.classList.remove("hidden");
+        updatePauseControl();
+      }
+
+      function resumeInterval() {
+        if (!intervalPaused) return;
+        const kind = pausedTimerKind;
+        const remaining = Math.max(0, pausedTimerRemaining);
+        const keep = pausedTimerKeep;
+        intervalPaused = false;
+        pausedTimerKind = "";
+        pausedTimerRemaining = 0;
+        pausedTimerKeep = false;
+        pauseMask.classList.add("hidden");
+        if (kind === "result") {
+          resultDueAt = Date.now() + remaining;
+          resultTimer = setTimeout(function () {
+            resultTimer = null;
+            resultDueAt = 0;
+            updatePauseControl();
+            if (game.classList.contains("active")) enterReady(false);
+          }, remaining);
+        } else if (kind === "ready") {
+          readyDelayDueAt = Date.now() + remaining;
+          readyDelayTimer = setTimeout(function () {
+            readyDelayTimer = null;
+            readyDelayDueAt = 0;
+            updatePauseControl();
+            enterReady(keep);
+          }, remaining);
+        }
+        updatePauseControl();
       }
 
       function vibrate() {
@@ -4304,6 +4457,13 @@
       let sfxTickOsc = [];
       let sfxQuietUntil = 0;
       let readyDelayTimer = null;
+      let readyDelayDueAt = 0;
+      let readyDelayKeep = false;
+      let resultDueAt = 0;
+      let intervalPaused = false;
+      let pausedTimerKind = "";
+      let pausedTimerRemaining = 0;
+      let pausedTimerKeep = false;
       const SFX_TAIL_MS = {
         ready: 850,
         tick: 0,
@@ -4674,13 +4834,20 @@
       }
 
       function enterReady(keep) {
-        const wait = Math.max(0, sfxQuietUntil - Date.now());
+        const nextGapAt = Date.now() + settingsState.nextGapMs;
+        const wait = Math.max(0, Math.max(sfxQuietUntil, nextGapAt) - Date.now());
         if (wait > 0) {
           if (readyDelayTimer !== null) clearTimeout(readyDelayTimer);
+          readyDelayKeep = !!keep;
+          readyDelayDueAt = Date.now() + wait;
           readyDelayTimer = setTimeout(function () {
             readyDelayTimer = null;
+            readyDelayDueAt = 0;
+            readyDelayKeep = false;
+            updatePauseControl();
             enterReady(keep);
           }, wait);
+          updatePauseControl();
           return;
         }
         roundIsReplay = !!keep;
@@ -4755,11 +4922,16 @@
         const madeBest = !!(countThis && ok && playerCount === 1 && considerBest());
         playRoundResult(ok, madeBest);
         if (resultTimer) clearTimeout(resultTimer);
+        const nextGap = Math.max(0, settingsState.nextGapMs);
+        resultDueAt = Date.now() + nextGap;
         resultTimer = setTimeout(function () {
           resultTimer = null;
+          resultDueAt = 0;
+          updatePauseControl();
           if (!game.classList.contains("active")) return;
           enterReady(false);
-        }, madeBest ? 720 : 520);
+        }, nextGap);
+        updatePauseControl();
       }
 
       function commitMulti() {
@@ -5136,6 +5308,18 @@
         saveSettings();
       });
 
+      nextGapRange.addEventListener("input", () => {
+        settingsState.nextGapMs = clampGapMs(nextGapRange.value);
+        saveSettings();
+      });
+
+      document.getElementById("nextGapPresets").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-gap]");
+        if (!btn) return;
+        settingsState.nextGapMs = clampGapMs(btn.dataset.gap);
+        saveSettings();
+      });
+
       sizeRange.addEventListener("input", () => {
         settingsState.sizePct = clampSize(sizeRange.value);
         saveSettings();
@@ -5195,7 +5379,7 @@
         saveSettings();
       });
 
-      [exitBtn, gameDailyBtn, replayBtn, nextBtn, challengeTuneBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
+      [exitBtn, pauseBtn, resumeBtn, gameDailyBtn, replayBtn, nextBtn, challengeTuneBtn, yesBtn, noBtn, groupRow, answerBar, typeRow, typeSubmit].forEach(bindStop);
       typeInput.addEventListener("pointerdown", stopBubble);
       typeInput.addEventListener("click", stopBubble);
       typeInput.addEventListener("input", () => {
@@ -5213,6 +5397,18 @@
         e.preventDefault();
         e.stopPropagation();
         leaveGame();
+      });
+
+      pauseBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pauseInterval();
+      });
+
+      resumeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        resumeInterval();
       });
 
       gameDailyBtn.addEventListener("click", (e) => {

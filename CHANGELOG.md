@@ -18,3 +18,4 @@
 - Make challenge-mode round feedback shorter and distinct from the configuration-saved confirmation sound.
 - Bypass Service Worker caching for Firebase reads so saved challenge settings are verified against live data.
 - Queue consecutive sound effects to prevent answer feedback and the next-round cue from overlapping.
+- Make the post-answer gap configurable and pausable while waiting for the next round.
