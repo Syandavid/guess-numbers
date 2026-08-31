@@ -4838,8 +4838,8 @@
         }
       }
 
-      function enterReady(keep) {
-        const nextGapAt = Date.now() + settingsState.nextGapMs;
+      function enterReady(keep, applyGap) {
+        const nextGapAt = Date.now() + (applyGap === true ? settingsState.nextGapMs : 0);
         const wait = Math.max(0, Math.max(sfxQuietUntil, nextGapAt) - Date.now());
         if (wait > 0) {
           if (readyDelayTimer !== null) clearTimeout(readyDelayTimer);
@@ -4850,7 +4850,7 @@
             readyDelayDueAt = 0;
             readyDelayKeep = false;
             updatePauseControl();
-            enterReady(keep);
+            enterReady(keep, false);
           }, wait);
           updatePauseControl();
           return;
@@ -4934,7 +4934,7 @@
           resultDueAt = 0;
           updatePauseControl();
           if (!game.classList.contains("active")) return;
-          enterReady(false);
+          enterReady(false, false);
         }, nextGap);
         updatePauseControl();
       }
@@ -4950,7 +4950,7 @@
         }
         if (currentSession) currentSession.rounds += 1;
         renderSessionScores();
-        enterReady(false);
+        enterReady(false, true);
       }
 
       function goHome() {
@@ -5041,7 +5041,7 @@
         gameDailyBtn.classList.toggle("hidden", gameMode === "room" || gameMode === "daily");
         beginSession();
         showScreen(game);
-        enterReady(false);
+        enterReady(false, false);
       }
 
       function enterDailyPlay() {
@@ -5433,7 +5433,7 @@
           return;
         }
         if (phase !== "answer") return;
-        enterReady(gameMode !== "challenge");
+        enterReady(gameMode !== "challenge", true);
       });
 
       yesBtn.addEventListener("click", (e) => {
@@ -5464,7 +5464,7 @@
         }
         if (gameMode === "daily" || gameMode === "challenge" || usesTyping()) {
           if (phase !== "answer") return;
-          enterReady(false);
+          enterReady(false, true);
           return;
         }
         commitMulti();
@@ -5517,7 +5517,7 @@
           if (e.key === "y" || e.key === "Y" || e.key === "Enter") {
             e.preventDefault();
             if (multi) commitMulti();
-            else if (gameMode === "daily" || gameMode === "challenge") enterReady(false);
+            else if (gameMode === "daily" || gameMode === "challenge") enterReady(false, true);
             else recordSolo(true);
             return;
           }
