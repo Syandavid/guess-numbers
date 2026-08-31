@@ -16,3 +16,4 @@
 
 - Initial public PWA with practice, daily, challenge and multiplayer room modes.
 - Make challenge-mode round feedback shorter and distinct from the configuration-saved confirmation sound.
+- Bypass Service Worker caching for Firebase reads so saved challenge settings are verified against live data.

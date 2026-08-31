@@ -1,4 +1,4 @@
-const CACHE = "guess-numbers-v40";
+const CACHE = "guess-numbers-v41";
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,9 +35,24 @@ function isHtmlRequest(request) {
   }
 }
 
+function isLiveApiRequest(request) {
+  try {
+    const host = new URL(request.url).hostname;
+    return host === "firestore.googleapis.com"
+      || host === "identitytoolkit.googleapis.com"
+      || host === "securetoken.googleapis.com";
+  } catch (_) {
+    return false;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const req = event.request;
+
+  // Auth and Firestore reads must always reach the server; stale cached data
+  // makes a successful write look like a failed read-back verification.
+  if (isLiveApiRequest(req)) return;
 
   if (isHtmlRequest(req)) {
     event.respondWith(

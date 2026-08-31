@@ -3251,7 +3251,13 @@
         const err = data && data.error ? JSON.stringify(data.error) : "";
         return /ALREADY_EXISTS/i.test(err);
       }
-      async function fbGet(path) { return fbFetch(FB_DOCS + "/" + path, { method: "GET" }); }
+      async function fbGet(path) {
+        return fbFetch(FB_DOCS + "/" + path, {
+          method: "GET",
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" }
+        });
+      }
       async function fbList(path) { return fbFetch(FB_DOCS + "/" + path + "?pageSize=100", { method: "GET" }); }
       async function fbPatch(path, fields, keys) {
         const maskKeys = keys || Object.keys(fields);
